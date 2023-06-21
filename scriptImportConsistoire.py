@@ -1,11 +1,3 @@
-import json
-import pandas as pd
-import re
-from bs4 import BeautifulSoup
-import mysql.connector
-from mysql.connector import Error
-import time 
-
 # GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1' IDENTIFIED BY 'root' WITH GRANT OPTION;
 # consistoire comprend X synagogues
 # on affiche pas l'étiquette vu que y a1 seule syna troyes
@@ -19,6 +11,15 @@ import time
 # Consistoire de ville = Liste des villes (avec synagogue unique ou multiples) avec une exception pour Paris identifié par ID ville 13 dans le fichier communautés = une seule ville  
 
 # Liste des consistoire de ville à compléter car multi synagogues
+
+import json
+import requests
+import pandas as pd
+import re
+from bs4 import BeautifulSoup
+import mysql.connector
+from mysql.connector import Error
+import time 
 
 def has_class_but_no_id(tag):
     return tag.has_attr('class') and not tag.has_attr('id')
@@ -287,13 +288,13 @@ def insertData(connection, row):
             # print("inserted successfully")
 
 # Lire le fichier JSON
-with open('file.json') as file:
-    json_data = json.load(file)
+url = 'http://www.consistoire.org/getJson?f=_communaute'
+response = requests.get(url)
 # Parcourir et structurer le fichier JSON
 rows = []
 # print(json_data)
 connection = connectDatabase()
-parcourir_json(json_data, connection)
+parcourir_json(response.json(), connection)
 
 # insertData(connection, rows)
 for row in rows:
