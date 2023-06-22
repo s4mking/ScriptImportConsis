@@ -1,17 +1,3 @@
-# GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1' IDENTIFIED BY 'root' WITH GRANT OPTION;
-# consistoire comprend X synagogues
-# on affiche pas l'étiquette vu que y a1 seule syna troyes
-# on affiche pour marseille vu que multi synas
-# chaque ville est un conssitoire de ville avec exception Paris qui est considéré comme un consistoire de ville
-# Troyes
-# 9 en multi consistoires
-# exemple troyes est rattaché à un consistoire regional et en mee temps vu que c'est la seule synagogue c'est un consistoire de ville
-# Consistoire de régions = fichier conssitoires transmis par Denis
-
-# Consistoire de ville = Liste des villes (avec synagogue unique ou multiples) avec une exception pour Paris identifié par ID ville 13 dans le fichier communautés = une seule ville  
-
-# Liste des consistoire de ville à compléter car multi synagogues
-
 import json
 import requests
 import pandas as pd
@@ -33,8 +19,6 @@ def parcourir_json(data, connection, indentation=0, parent_key=''):
         soup = BeautifulSoup(data['detail'], 'html.parser')
         soup = soup.find_all(has_class_but_no_id)
         detail = {}
-        # value = tag.get_text().strip()
-        # tags[class_attr] = value
         tags = {}
 
         for tag in soup: 
@@ -44,21 +28,30 @@ def parcourir_json(data, connection, indentation=0, parent_key=''):
                     count = tags[class_attr] + 1
                     tags[class_attr] = count
                     class_attr += str(count)
-                    # print(class_attr)
-                    # tag['class']=class_attr
                     detail[class_attr] = str(tag.text)
                 else:
                     tags[class_attr] = 0
                     detail[tag['class'][0]] = str(tag.text)
             
-        obj = {'id_communaute': str(data['id_communaute']),'id_consistoire': str(data['id_consistoire']),
-                      'id_region': str(data['id_region']), 'id_ville_h': str(data['id_ville_h']) ,'nom': str(data['nom']) ,
-                      'adresse': str(data['adresse']), 'code_postal': str(data['code_postal']),  'ville': str(data['ville']),
-                        'latitude': str(data['latitude']), 'longitude': str(data['longitude']),  'tel': str(data['tel']),
-                        'email': str(data['email']), 'consistoriale': str(data['consistoriale']),  'associee': str(data['associee']),
-                        'autre': str(data['autre']), 'site': str(data['site']),  'image': str(data['image'])
-                        }
-        
+        obj = {
+            'id_communaute': data['id_communaute'],
+            'id_consistoire': data['id_consistoire'],
+            'id_region': data['id_region'],
+            'id_ville_h': data['id_ville_h'],
+            'nom': data['nom'],
+            'adresse': data['adresse'],
+            'code_postal': data['code_postal'],
+            'ville': data['ville'],
+            'latitude': data['latitude'],
+            'longitude': data['longitude'],
+            'tel': data['tel'],
+            'email': data['email'],
+            'consistoriale': data['consistoriale'],
+            'associee': data['associee'],
+            'autre': data['autre'],
+            'site': data['site'],
+            'image': data['image']
+        }
         
         obj.update(detail)
         rows.append(obj)
@@ -128,159 +121,115 @@ def transform_value(value):
 def insertData(connection, row):
     actualTime = time.strftime('%Y-%m-%d %H:%M:%S')
 
-   
-    data = {
-        'login': 'toto',
-        'pass': 'sam',
-        'email': 'sam@sam.fr',
-        'date': actualTime,
-        'status': 0
+    queryContactSynaPost = "INSERT INTO J6e0wfWFh_posts (post_author, post_date, post_date_gmt, post_content, post_title, post_excerpt, post_name, to_ping, pinged, post_modified, post_modified_gmt, post_content_filtered, guid, post_type) VALUES (%(post_author)s, %(post_date)s, %(post_date_gmt)s, %(post_content)s, %(post_title)s, %(post_excerpt)s, %(post_name)s, %(to_ping)s, %(pinged)s, %(post_modified)s, %(post_modified_gmt)s, %(post_content_filtered)s, %(guid)s, %(post_type)s)"
+    
+    postContent = {
+        "post_author": 1,
+        "post_date": actualTime,
+        "post_date_gmt": actualTime,
+        "post_content": "",
+        "post_title": row['nom'],
+        "post_excerpt": "",
+        "to_ping": "",
+        "pinged": "",
+        "post_name": row['nom'].lower().replace(" ", "-"),
+        "post_modified": actualTime,
+        "post_modified_gmt": actualTime,
+        "post_content_filtered": "",
+        "guid": "http://consistoire.local/?p=11",
+        "post_type": "contact-des-synagogu"
     }
 
-    queryContactSynaPost = "INSERT INTO J6e0wfWFh_posts (post_author, post_date, post_date_gmt, post_content, post_title, post_excerpt, post_name, to_ping, pinged, post_modified, post_modified_gmt, post_content_filtered, guid, post_type) VALUES (%(post_author)s, %(post_date)s, %(post_date_gmt)s, %(post_content)s, %(post_title)s, %(post_excerpt)s,  %(post_name)s, %(to_ping)s, %(pinged)s, %(post_modified)s, %(post_modified_gmt)s, %(post_content_filtered)s, %(guid)s, %(post_type)s)"
-    postContent = {
-            "post_author": 1,
-            "post_date": actualTime,
-            "post_date_gmt": actualTime,
-            "post_content": "",
-            "post_title": row['nom'],
-            "post_excerpt": "",
-             "to_ping": "",
-            "pinged": "",
-            "post_name":  row['nom'].lower().replace(" ", "-"),
-            "post_modified": actualTime,
-            "post_modified_gmt": actualTime,
-            "post_content_filtered": "",
-            "guid": "http://consistoire.local/?p=11",
-            "post_type": "contact-des-synagogu",
-        }
     cursor = connection.cursor(buffered=True)
     cursor.execute(queryContactSynaPost, postContent)
     connection.commit()
 
-
-    id = findIdPost(connection, row['nom'])
-    if id:
+    try:
+        id = cursor.lastrowid
         isDirigeant = False
         arrayIdsMembers = []
+
         for entry in row:
             if entry == 'id_region':
-                meta = {
-                    'post_id': id[0],
-                    'meta_key': 'region',
-                    'meta_value': findIdRegion(int(row[entry]))
-                }
+                meta_key = 'region'
+                meta_value = findIdRegion(int(row[entry]))
             elif entry == 'id_communaute':
                 titleCommunaute = findCommunaute(connection, row[entry])
                 if titleCommunaute:
-                    meta = {
-                        'post_id': id[0],
-                        'meta_key': 'nom-complet',
-                        'meta_value': titleCommunaute[0]
-                    }
+                    meta_key = 'nom-complet'
+                    meta_value = titleCommunaute[0]
                 else:
                     continue
             elif entry == 'historique':
-                meta = {
-                        'post_id': id[0],
-                        'meta_key': 'historique',
-                        'meta_value': row[entry]
-                    }
-                
-                
+                meta_key = 'historique'
+                meta_value = row[entry]
             elif entry in ['id_consistoire', 'id_ville_h']:
                 continue
-            elif  'nom-prenom' in entry:
+            elif 'nom-prenom' in entry:
                 continue
-            elif  entry ==  'ville':
-                 meta = {
-                        'post_id': id[0],
-                        'meta_key': 'ville',
-                        'meta_value': row[entry].capitalize()
-                    }
-            elif  'fonction' in entry:
+            elif entry == 'ville':
+                meta_key = 'ville'
+                meta_value = row[entry].capitalize()
+            elif 'fonction' in entry:
                 isDirigeant = True
-                number  = re.findall(r'\d+', entry)
+                number = re.findall(r'\d+', entry)
                 number = '' if not number else int(number[0])
-                queryMembrePost = "INSERT INTO J6e0wfWFh_posts (post_author, post_date, post_date_gmt, post_content, post_title, post_excerpt, post_name, to_ping, pinged, post_modified, post_modified_gmt, post_content_filtered, guid, post_type) VALUES (%(post_author)s, %(post_date)s, %(post_date_gmt)s, %(post_content)s, %(post_title)s, %(post_excerpt)s,  %(post_name)s, %(to_ping)s, %(pinged)s, %(post_modified)s, %(post_modified_gmt)s, %(post_content_filtered)s, %(guid)s, %(post_type)s)"
+                queryMembrePost = "INSERT INTO J6e0wfWFh_posts (post_author, post_date, post_date_gmt, post_content, post_title, post_excerpt, post_name, to_ping, pinged, post_modified, post_modified_gmt, post_content_filtered, guid, post_type) VALUES (%(post_author)s, %(post_date)s, %(post_date_gmt)s, %(post_content)s, %(post_title)s, %(post_excerpt)s, %(post_name)s, %(to_ping)s, %(pinged)s, %(post_modified)s, %(post_modified_gmt)s, %(post_content_filtered)s, %(guid)s, %(post_type)s)"
                 text = row['nom-prenom'+str(number)].lower().replace(" ", "-")
                 if len(text) > 200:
                     text = text[:200]
                 membreContent = {
-                        "post_author": 1,
-                        "post_date": actualTime,
-                        "post_date_gmt": actualTime,
-                        "post_content": "",
-                        "post_title": row['nom-prenom'+str(number)],
-                        "post_excerpt": "",
-                        "to_ping": "",
-                        "pinged": "",
-                        "post_name": text,
-                        "post_modified": actualTime,
-                        "post_modified_gmt": actualTime,
-                        "post_content_filtered": "",
-                        "guid": "http://consistoire.local/?p=11",
-                        "post_type": "dirigeants",
-                    }
-                cursor = connection.cursor(buffered=True)
+                    "post_author": 1,
+                    "post_date": actualTime,
+                    "post_date_gmt": actualTime,
+                    "post_content": "",
+                    "post_title": row['nom-prenom'+str(number)],
+                    "post_excerpt": "",
+                    "to_ping": "",
+                    "pinged": "",
+                    "post_name": text,
+                    "post_modified": actualTime,
+                    "post_modified_gmt": actualTime,
+                    "post_content_filtered": "",
+                    "guid": "http://consistoire.local/?p=11",
+                    "post_type": "dirigeants"
+                }
                 cursor.execute(queryMembrePost, membreContent)
                 connection.commit()
                 arrayIdsMembers.append(cursor.lastrowid)
                 idPostMembre = findIdPostMembre(connection, row['nom-prenom'+str(number)])
-                query_postmetamember = "INSERT INTO J6e0wfWFh_postmeta (post_id, meta_key, meta_value) VALUES (%(post_id)s, %(meta_key)s, %(meta_value)s)"
-                meta = {
-                    'post_id': idPostMembre[0],
-                    'meta_key': 'status',
-                    'meta_value': transform_value(row[entry])
-                }
-
-                cursor = connection.cursor(buffered=True)
-                cursor.execute(query_postmetamember, meta)
+                query_postmetamember = "INSERT INTO J6e0wfWFh_postmeta (post_id, meta_key, meta_value) VALUES (%s, %s, %s)"
+                meta_key = 'status'
+                meta_value = transform_value(row[entry])
+                cursor.execute(query_postmetamember, (idPostMembre[0], meta_key, meta_value))
                 connection.commit()
-            
             else:
-                meta = {
-                    'post_id': id[0],
-                    'meta_key': re.sub(r'\d+', '', entry),
-                    'meta_value': transform_value(row[entry])
-                }
-        if isDirigeant:
-            result = "a:{}:{{".format(len(arrayIdsMembers))
-            result += ";".join([f"i:{i};s:{len(str(value))}:\"{value}\"" for i, value in enumerate(arrayIdsMembers)])
-            result += "}"
-            metaDirigeants = {
-                'post_id': idPostMembre[0],
-                'meta_key': 'dirigeants',
-                'meta_value': result
-            }
-            sqlLikeBetweenDirAndContact = "INSERT INTO J6e0wfWFh_postmeta (post_id, meta_key, meta_value) VALUES (%(post_id)s, %(meta_key)s, %(meta_value)s)"
-            cursor = connection.cursor(buffered=True)
-            cursor.execute(sqlLikeBetweenDirAndContact, metaDirigeants)
+                meta_key = re.sub(r'\d+', '', entry)
+                meta_value = transform_value(row[entry])
+            
+            cursor.execute("INSERT INTO J6e0wfWFh_postmeta (post_id, meta_key, meta_value) VALUES (%s, %s, %s)", (id, meta_key, meta_value))
             connection.commit()
-        sql_query3 = "INSERT INTO J6e0wfWFh_postmeta (post_id, meta_key, meta_value) VALUES (%(post_id)s, %(meta_key)s, %(meta_value)s)"
-        cursor = connection.cursor(buffered=True)
-        cursor.execute(sql_query3, meta)
-        connection.commit()
 
-            # metaConsistoire = {
-            #     'post_id': id[0],
-            #     'meta_key': 'consistoire',
-            #     'meta_value': 'Consistoire de ville'
-            # }
-            # sql_consistoire = "INSERT INTO J6e0wfWFh_postmeta (post_id, meta_key, meta_value) VALUES (%(post_id)s, %(meta_key)s, %(meta_value)s)"
-            # cursor = connection.cursor(buffered=True)
-            # cursor.execute(sql_consistoire, metaConsistoire)
-            # print("inserted successfully")
+        if isDirigeant:
+            result = ";".join([f"i:{i};s:{len(str(value))}:\"{value}\"" for i, value in enumerate(arrayIdsMembers)])
+            metaDirigeants = {
+                'meta_key': 'dirigeants',
+                'meta_value': f"a:{len(arrayIdsMembers)}:{{{result}}}"
+            }
+            sqlLikeBetweenDirAndContact = "INSERT INTO J6e0wfWFh_postmeta (post_id, meta_key, meta_value) VALUES (%s, %s, %s)"
+            cursor.execute(sqlLikeBetweenDirAndContact, (idPostMembre[0], metaDirigeants['meta_key'], metaDirigeants['meta_value']))
+            connection.commit()
+    except Exception as e:
+        print(f"Error inserting data: {str(e)}")
+
 
 # Lire le fichier JSON
 url = 'http://www.consistoire.org/getJson?f=_communaute'
 response = requests.get(url)
 # Parcourir et structurer le fichier JSON
 rows = []
-# print(json_data)
 connection = connectDatabase()
 parcourir_json(response.json(), connection)
 
-# insertData(connection, rows)
 for row in rows:
     insertData(connection, row)
