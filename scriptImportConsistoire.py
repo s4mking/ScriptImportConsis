@@ -25,21 +25,11 @@ def has_class_but_no_id(tag):
     return tag.has_attr('class') and not tag.has_attr('id')
 
 def parcourir_json(data, connection, indentation=0, parent_key=''):
-    # if isinstance(data, dict):
-    #     for key, value in data.items():
-    #         new_key = parent_key + '.' + key if parent_key else key
-    #         parcourir_json(value, indentation, new_key)
     if isinstance(data, list):
         for i, item in enumerate(data):
             new_key = parent_key + '[{}]'.format(i) 
             parcourir_json(item, connection, indentation, new_key) 
     else:
-        # if isinstance(data, dict):
-        #  print(data)
-        #  for key, value in data.items():
-        #      new_key = parent_key + '.' + key if parent_key else key
-        #      parcourir_json(value, indentation, new_key)
-
         soup = BeautifulSoup(data['detail'], 'html.parser')
         soup = soup.find_all(has_class_but_no_id)
         detail = {}
@@ -80,11 +70,6 @@ def connectDatabase():
                                                 user='samuel',
                                                 password='samuel',
                                                 port=10005)
-        # connectionDev = mysql.connector.connect(host='80.119.208.4',
-        #                                      database='consistoirefr',
-        #                                      user='wp_brrvv',
-        #                                      password='64nL@_X5B@1*d?H&',
-        #                                      port=8443)
         return connection
     except mysql.connector.Error as error:
         print("Error while connecting to MySQL", error)
@@ -299,54 +284,3 @@ parcourir_json(response.json(), connection)
 # insertData(connection, rows)
 for row in rows:
     insertData(connection, row)
-# Créer un DataFrame à partir des données structurées
-# df = pd.DataFrame(rows)
-
-# # Écrire le DataFrame dans un fichier Excel
-# df.to_excel('result.xlsx', index=False)
-
-
-
-
-
- # sql_query = "INSERT INTO wp_users (user_login, user_pass, user_email, user_registered, user_status) VALUES (%(login)s, %(pass)s, %(email)s, %(date)s, %(status)s)"
-        # sql_query = "INSERT INTO J6e0wfWFh_posts (user_login, user_pass, user_email, user_registered, user_status) VALUES (%(login)s, %(pass)s, %(email)s, %(date)s, %(status)s)"
-        # sql_query2 = "INSERT INTO J6e0wfWFh_posts (post_author, post_date, post_date_gmt, post_content, post_title, post_excerpt, post_status, comment_status, ping_status, post_password, post_name, to_ping, pinged, post_modified, post_modified_gmt, post_content_filtered, post_parent, guid, menu_order, post_type, post_mime_type, comment_count) VALUES (%(post_author)s, %(post_date)s, %(post_date_gmt)s, %(post_content)s, %(post_title)s, %(post_excerpt)s, %(post_status)s, %(comment_status)s, %(ping_status)s, %(post_password)s, %(post_name)s, %(to_ping)s, %(pinged)s, %(post_modified)s, %(post_modified_gmt)s, %(post_content_filtered)s, %(post_parent)s, %(guid)s, %(menu_order)s, %(post_type)s, %(post_mime_type)s, %(comment_count)s)"
-        # postContent = {
-        #     "post_author": 1,
-        #     "post_date": actualTime,
-        #     "post_date_gmt": actualTime,
-        #     "post_content": "",
-        #     "post_title": "Samtest",
-        #     "post_excerpt": "",
-        #     "post_status": "publish",
-        #     "comment_status": "closed",
-        #     "ping_status": "closed",
-        #     "post_password": "",
-        #     "post_name": "kit-par-defaut",
-        #     "to_ping": "",
-        #     "pinged": "",
-        #     "post_modified": actualTime,
-        #     "post_modified_gmt": actualTime,
-        #     "post_content_filtered": "",
-        #     "post_parent": 0,
-        #     "guid": "http://consistoire.local/?p=11",
-        #     "menu_order": 0,
-        #     "post_type": "elementor_library",
-        #     "post_mime_type": "",
-        #     "comment_count": 0
-        # }
-    #     arrayDatas = {
-    #     "nom": row['nom'],
-    #     "adresse-complete": row['adresse'],
-    #     "ville": row['ville'],
-    #     "latitude": row['latitude'],
-    #     "longitude": row['longitude'],
-    #     "numero-de-telephone": row['tel'],
-    #     "email": row['email'],
-    #     "consistoriale": row['consistoriale'],
-    #     "associee": row['associee'],
-    #     "autre": row['autre'],
-    #     "site": row['site'],
-    #     "image": row['image']
-    # }
