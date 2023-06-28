@@ -1,12 +1,19 @@
 import json
 import requests
-import pandas as pd
 import re
 from bs4 import BeautifulSoup
 import mysql.connector
 from mysql.connector import Error
 import time
 
+# How to run this script 
+# python3 -m venv script
+# source script/bin/activate
+# pip install openpyxl 
+# pip install mysql-connector-python 
+# pip install beautifulsoup4
+# pip install re
+# python3 scriptImportConsistoire.py
 
 def has_class_but_no_id(tag):
     return tag.has_attr("class") and not tag.has_attr("id")
@@ -84,7 +91,8 @@ def findIdPostMembre(connection, name):
     cursor = connection.cursor(buffered=True)
     select = "SELECT id FROM J6e0wfWFh_posts WHERE J6e0wfWFh_posts.post_title = %s AND J6e0wfWFh_posts.post_type = %s "
     cursor.execute(select, (name, "dirigeants"))
-    return cursor.fetchone()
+    result = cursor.fetchone()
+    return result[0] if result is not None else None
 
 
 def findCommunaute(connection, id):
@@ -92,13 +100,15 @@ def findCommunaute(connection, id):
     select = "SELECT post_title FROM J6e0wfWFh_posts WHERE J6e0wfWFh_posts.ID = %s"
     cursor.execute(select, (id,))
     return cursor.fetchone()
+    
 
 
 def findIdSyna(connection, name):
     cursor = connection.cursor(buffered=True)
     select = "SELECT id FROM J6e0wfWFh_posts WHERE J6e0wfWFh_posts.post_title = %s AND J6e0wfWFh_posts.post_type = %s "
     cursor.execute(select, (name, "synagogue"))
-    return cursor.fetchone()
+    result = cursor.fetchone()
+    return result[0] if result is not None else None
 
 
 def createAndReturnIdMember(connection, name, actualTime, text):
@@ -129,7 +139,7 @@ def createAndReturnIdMember(connection, name, actualTime, text):
 def createPostMeta(connection, entry, meta_key, id):
     cursor = connection.cursor(buffered=True)
     query_postmetamember = "INSERT INTO J6e0wfWFh_postmeta (post_id, meta_key, meta_value) VALUES (%s, %s, %s)"
-    meta_value = transform_value(entry)
+    meta_value = transformValue(entry)
     cursor.execute(
         query_postmetamember,
         (id, meta_key, meta_value),
@@ -187,7 +197,7 @@ def findIdRegion(id):
     return regions[id - 1]
 
 
-def transform_value(value):
+def transformValue(value):
     if value == "0":
         return "no"
     elif value == "1":
@@ -216,7 +226,13 @@ def insertData(connection, row, countsByVille):
 
     # Plusieurs synagogues dans la ville
     if (countsByVille[row["ville"]]) > 1:
-        id = createPostContactSynaAndReturnId(connection, actualTime)
+        idContactSyna = createPostContactSynaAndReturnId(connection, actualTime)
+    # 1 syna = 1 ville
+    else:
+        idContactSyna = findIdSyna(connection, row["ville"].capitalize())
+    #la ville correspondante n'est pas trouvé on sort
+        if not idContactSyna:
+            return
         try:
             isDirigeant = False
             arrayIdsMembers = []
@@ -233,7 +249,7 @@ def insertData(connection, row, countsByVille):
                     else:
                         continue
                 elif entry == "historique":
-                    meta_key = "historique"
+                    meta_key = "description-principale"
                     meta_value = row[entry]
                 elif entry in ["id_consistoire", "id_ville_h"]:
                     continue
@@ -248,10 +264,9 @@ def insertData(connection, row, countsByVille):
                     number = "" if not number else int(number[0])
                     text = row["nom-prenom" + str(number)].lower()
                     if "," in text:
-                        pattern = re.compile(r"\b[a-zA-ZÀ-ÿ\s\.\-]+(?=:)", re.UNICODE)
-                        names = pattern.findall(text)
+                        # pattern = re.compile(r"\b[a-zA-ZÀ-ÿ\s\.\-]+(?=:)", re.UNICODE)
+                        # names = pattern.findall(text)
                         names = text.split(", ")
-                        print(names)
                         for name in names:
                             idPostMembre = findIdPostMembre(connection, name)
                             if not idPostMembre:
@@ -260,30 +275,29 @@ def insertData(connection, row, countsByVille):
                                 )
                                 arrayIdsMembers.append(lastRowId)
                             else:
-                                arrayIdsMembers.append(idPostMembre[0])
+                                arrayIdsMembers.append(idPostMembre)
                                 createPostMeta(
-                                    connection, row[entry], "status", idPostMembre[0]
+                                    connection, row[entry], "status", idPostMembre
                                 )
                     else:
                         if len(text) > 200:
                             text = text[:200]
                         idPostMembre = findIdPostMembre(connection, text)
                         if not idPostMembre:
-                            lastRowId = createAndReturnIdMember(
+                            idPostMembre = createAndReturnIdMember(
                                 connection, text, actualTime, text
                             )
-                            arrayIdsMembers.append(lastRowId)
-                            # idPostMembre = findIdPostMembre(connection, row['nom-prenom'+str(number)])
+                            arrayIdsMembers.append(idPostMembre)
+                        #     # idPostMembre = findIdPostMembre(connection, row['nom-prenom'+str(number)])
                         else:
-                            arrayIdsMembers.append(idPostMembre[0])
+                            arrayIdsMembers.append(idPostMembre)
                         createPostMeta(
-                            connection, row[entry], "status", idPostMembre[0]
+                            connection, row[entry], "status", idPostMembre
                         )
                 else:
                     meta_key = re.sub(r"\d+", "", entry)
-                    meta_value = transform_value(row[entry])
-
-                    createPostMeta(connection, meta_value, meta_key, id)
+                    meta_value = transformValue(row[entry])
+                    createPostMeta(connection, meta_value, meta_key, idContactSyna)
 
             if isDirigeant:
                 result = ";".join(
@@ -302,18 +316,10 @@ def insertData(connection, row, countsByVille):
                         connection,
                         metaDirigeants["meta_value"],
                         metaDirigeants["meta_key"],
-                        idSyna[0],
+                        idSyna
                     )
         except Exception as e:
             print(f"Error inserting data: {str(e)}")
-    else:
-        idSyna = findIdSyna(connection, row["ville"].capitalize())
-        for entry in row:
-            if entry == "historique" and idSyna:
-                createPostMeta(
-                    connection, row[entry], "description-principale", idSyna[0]
-                )
-                # cursor.execute("UPDATE users SET name = %s, age = %s WHERE id = %s", (new_name, findIdSyna[0]))
 
 
 # Lire le fichier JSON
