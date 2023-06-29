@@ -260,6 +260,8 @@ def insertData(connection, row, countsByVille):
                     meta_value = row[entry]
                 elif entry == "adresse":
                     meta_key = "adresse-complete"
+                elif entry == "tel":
+                    meta_key = "numero-de-telephone"
                     meta_value = row[entry]
                 elif entry == "nom":
                     meta_key = "nom-complete"
