@@ -110,10 +110,15 @@ def findIdSyna(connection, name):
     result = cursor.fetchone()
     return result[0] if result is not None else None
 
+def getLastId(connection):
+    cursor = connection.cursor(buffered=True)
+    select = "SELECT id from J6e0wfWFh_posts ORDER BY id DESC LIMIT 1"
+    cursor.execute(select)
+    return cursor.fetchone()[0]
 
 def createAndReturnIdMember(connection, name, actualTime, text):
     queryMembrePost = "INSERT INTO J6e0wfWFh_posts (post_author, post_date, post_date_gmt, post_content, post_title, post_excerpt, post_name, to_ping, pinged, post_modified, post_modified_gmt, post_content_filtered, guid, post_type) VALUES (%(post_author)s, %(post_date)s, %(post_date_gmt)s, %(post_content)s, %(post_title)s, %(post_excerpt)s, %(post_name)s, %(to_ping)s, %(pinged)s, %(post_modified)s, %(post_modified_gmt)s, %(post_content_filtered)s, %(guid)s, %(post_type)s)"
-
+    lastId = getLastId(connection)
     membreContent = {
         "post_author": 1,
         "post_date": actualTime,
@@ -127,7 +132,7 @@ def createAndReturnIdMember(connection, name, actualTime, text):
         "post_modified": actualTime,
         "post_modified_gmt": actualTime,
         "post_content_filtered": "",
-        "guid": "http://consistoire.local/?p=11",
+        "guid": "http://consistoire.local/?post_type=dirigeants&#038;p="+str(lastId),
         "post_type": "dirigeants",
     }
     cursor = connection.cursor(buffered=True)
@@ -149,7 +154,7 @@ def createPostMeta(connection, entry, meta_key, id):
 
 def createPostContactSynaAndReturnId(connection, actualTime):
     queryContactSynaPost = "INSERT INTO J6e0wfWFh_posts (post_author, post_date, post_date_gmt, post_content, post_title, post_excerpt, post_name, to_ping, pinged, post_modified, post_modified_gmt, post_content_filtered, guid, post_type) VALUES (%(post_author)s, %(post_date)s, %(post_date_gmt)s, %(post_content)s, %(post_title)s, %(post_excerpt)s, %(post_name)s, %(to_ping)s, %(pinged)s, %(post_modified)s, %(post_modified_gmt)s, %(post_content_filtered)s, %(guid)s, %(post_type)s)"
-
+    lastId = getLastId(connection)
     postContent = {
         "post_author": 1,
         "post_date": actualTime,
@@ -163,7 +168,7 @@ def createPostContactSynaAndReturnId(connection, actualTime):
         "post_modified": actualTime,
         "post_modified_gmt": actualTime,
         "post_content_filtered": "",
-        "guid": "http://consistoire.local/?p=11",
+        "guid": "http://consistoire.local/?post_type=contact-des-synagogu&#038;p="+str(lastId),
         "post_type": "contact-des-synagogu",
     }
 
@@ -223,10 +228,11 @@ def countSynasByVille(rows):
 
 def insertData(connection, row, countsByVille):
     actualTime = time.strftime("%Y-%m-%d %H:%M:%S")
-
+    multiSynas=False
     # Plusieurs synagogues dans la ville
     if (countsByVille[row["ville"]]) > 1:
         idContactSyna = createPostContactSynaAndReturnId(connection, actualTime)
+        multiSynas = True
     # 1 syna = 1 ville
     else:
         idContactSyna = findIdSyna(connection, row["ville"].capitalize())
@@ -248,13 +254,21 @@ def insertData(connection, row, countsByVille):
                         meta_value = titleCommunaute[0]
                     else:
                         continue
+                #Dans ma compréhension si on a 1 seul Syna alors c'estdescription-princiaple sinon c'est le detail non?
                 elif entry == "historique":
-                    meta_key = "description-principale"
+                    meta_key = "description-principale" if multiSynas else "detail"
+                    meta_value = row[entry]
+                elif entry == "adresse":
+                    meta_key = "adresse-complete"
+                    meta_value = row[entry]
+                elif entry == "nom":
+                    meta_key = "nom-complete"
                     meta_value = row[entry]
                 elif entry in ["id_consistoire", "id_ville_h"]:
                     continue
                 elif "nom-prenom" in entry:
-                    continue
+                    meta_key = "nom-complet-"
+                    meta_value = row[entry]
                 elif entry == "ville":
                     meta_key = "ville"
                     meta_value = row[entry].capitalize()
