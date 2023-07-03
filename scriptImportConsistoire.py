@@ -103,22 +103,29 @@ def findCommunaute(connection, id):
     
 
 
-def findIdSyna(connection, name):
+def findIdSynaByCpAndAdress(connection, row):
+    cursor = connection.cursor(buffered=True)
+    select = "SELECT id FROM J6e0wfWFh_posts INNER JOIN J6e0wfWFh_postmeta ON J6e0wfWFh_postmeta.post_id = J6e0wfWFh_posts.id WHERE J6e0wfWFh_postmeta.meta_value LIKE %s AND J6e0wfWFh_posts.post_type = %s "
+    cursor.execute(select, ('%'+row['adresse']+'%', "synagogue"))
+    result = cursor.fetchone()
+    return result[0] if result is not None else None
+
+def findIdSynaByVille(connection, name):
     cursor = connection.cursor(buffered=True)
     select = "SELECT id FROM J6e0wfWFh_posts WHERE J6e0wfWFh_posts.post_title = %s AND J6e0wfWFh_posts.post_type = %s "
     cursor.execute(select, (name, "synagogue"))
     result = cursor.fetchone()
     return result[0] if result is not None else None
 
-def getLastId(connection):
+def getLastIdAddOne(connection):
     cursor = connection.cursor(buffered=True)
     select = "SELECT id from J6e0wfWFh_posts ORDER BY id DESC LIMIT 1"
     cursor.execute(select)
-    return cursor.fetchone()[0]
+    return cursor.fetchone()[0]+1
 
 def createAndReturnIdMember(connection, name, actualTime, text):
     queryMembrePost = "INSERT INTO J6e0wfWFh_posts (post_author, post_date, post_date_gmt, post_content, post_title, post_excerpt, post_name, to_ping, pinged, post_modified, post_modified_gmt, post_content_filtered, guid, post_type) VALUES (%(post_author)s, %(post_date)s, %(post_date_gmt)s, %(post_content)s, %(post_title)s, %(post_excerpt)s, %(post_name)s, %(to_ping)s, %(pinged)s, %(post_modified)s, %(post_modified_gmt)s, %(post_content_filtered)s, %(guid)s, %(post_type)s)"
-    lastId = getLastId(connection)
+    lastId = getLastIdAddOne(connection)
     membreContent = {
         "post_author": 1,
         "post_date": actualTime,
@@ -151,10 +158,16 @@ def createPostMeta(connection, entry, meta_key, id):
     )
     connection.commit()
 
+def findcontactSynaAndReturnId(connection, actualTime):
+    cursor = connection.cursor(buffered=True)
+    select = "SELECT id FROM J6e0wfWFh_posts INNER JOIN J6e0wfWFh_postmeta ON J6e0wfWFh_postmeta.post_id = J6e0wfWFh_posts.id WHERE J6e0wfWFh_postmeta.meta_value LIKE %s AND J6e0wfWFh_posts.post_type = %s "
+    cursor.execute(select, ('%'+row['adresse']+'%', "contact-des-synagogu"))
+    result = cursor.fetchone()
+    return result[0] if result is not None else None
 
 def createPostContactSynaAndReturnId(connection, actualTime):
     queryContactSynaPost = "INSERT INTO J6e0wfWFh_posts (post_author, post_date, post_date_gmt, post_content, post_title, post_excerpt, post_name, to_ping, pinged, post_modified, post_modified_gmt, post_content_filtered, guid, post_type) VALUES (%(post_author)s, %(post_date)s, %(post_date_gmt)s, %(post_content)s, %(post_title)s, %(post_excerpt)s, %(post_name)s, %(to_ping)s, %(pinged)s, %(post_modified)s, %(post_modified_gmt)s, %(post_content_filtered)s, %(guid)s, %(post_type)s)"
-    lastId = getLastId(connection)
+    lastId = getLastIdAddOne(connection)
     postContent = {
         "post_author": 1,
         "post_date": actualTime,
@@ -229,113 +242,120 @@ def countSynasByVille(rows):
 def insertData(connection, row, countsByVille):
     actualTime = time.strftime("%Y-%m-%d %H:%M:%S")
     multiSynas=False
-    # Plusieurs synagogues dans la ville
+    # Plusieurs synagogues dans la ville 
     if (countsByVille[row["ville"]]) > 1:
-        idContactSyna = createPostContactSynaAndReturnId(connection, actualTime)
+        idContactSyna = findcontactSynaAndReturnId(connection, row)
+        if not idContactSyna:
+            idContactSyna = createPostContactSynaAndReturnId(connection, actualTime)
         multiSynas = True
+
     # 1 syna = 1 ville
     else:
-        idContactSyna = findIdSyna(connection, row["ville"].capitalize())
+        #Si adrresse et code postal similaire alors on ne rentre pas
+        idContactSyna = findIdSynaByVille(connection, row["ville"].capitalize())
     #la ville correspondante n'est pas trouvé on sort
         if not idContactSyna:
             return
-        try:
-            isDirigeant = False
-            arrayIdsMembers = []
+    try:
+        isDirigeant = False
+        arrayIdsMembers = []
 
-            for entry in row:
-                if entry == "id_region":
-                    meta_key = "region"
-                    meta_value = findIdRegion(int(row[entry]))
-                elif entry == "id_communaute":
-                    titleCommunaute = findCommunaute(connection, row[entry])
-                    if titleCommunaute:
-                        meta_key = "nom-complet"
-                        meta_value = titleCommunaute[0]
-                    else:
-                        continue
-                #Dans ma compréhension si on a 1 seul Syna alors c'estdescription-princiaple sinon c'est le detail non?
-                elif entry == "historique":
-                    meta_key = "description-principale" if multiSynas else "detail"
-                    meta_value = row[entry]
-                elif entry == "adresse":
-                    meta_key = "adresse-complete"
-                elif entry == "tel":
-                    meta_key = "numero-de-telephone"
-                    meta_value = row[entry]
-                elif entry == "nom":
-                    meta_key = "nom-complete"
-                    meta_value = row[entry]
-                elif entry in ["id_consistoire", "id_ville_h"]:
+        for entry in row:
+            # print(entry)
+            # print(row[entry])
+            if entry == "id_region":
+                meta_key = "region"
+                meta_value = findIdRegion(int(row[entry]))
+            elif entry == "id_communaute":
+                titleCommunaute = findCommunaute(connection, row[entry])
+                if titleCommunaute:
+                    meta_key = "nom-complet"
+                    meta_value = titleCommunaute[0]
+                else:
                     continue
-                elif "nom-prenom" in entry:
-                    meta_key = "nom-complet-"
-                    meta_value = row[entry]
-                elif entry == "ville":
-                    meta_key = "ville"
-                    meta_value = row[entry].capitalize()
-                elif "fonction" in entry:
-                    isDirigeant = True
-                    number = re.findall(r"\d+", entry)
-                    number = "" if not number else int(number[0])
-                    text = row["nom-prenom" + str(number)].lower()
-                    if "," in text:
-                        # pattern = re.compile(r"\b[a-zA-ZÀ-ÿ\s\.\-]+(?=:)", re.UNICODE)
-                        # names = pattern.findall(text)
-                        names = text.split(", ")
-                        for name in names:
-                            idPostMembre = findIdPostMembre(connection, name)
-                            if not idPostMembre:
-                                lastRowId = createAndReturnIdMember(
-                                    connection, name, actualTime, name
-                                )
-                                arrayIdsMembers.append(lastRowId)
-                            else:
-                                arrayIdsMembers.append(idPostMembre)
-                                createPostMeta(
-                                    connection, row[entry], "status", idPostMembre
-                                )
-                    else:
-                        if len(text) > 200:
-                            text = text[:200]
-                        idPostMembre = findIdPostMembre(connection, text)
+            #Dans ma compréhension si on a 1 seul Syna alors c'estdescription-princiaple sinon c'est le detail non?
+            elif entry == "historique":
+                meta_key = "description-principale" if multiSynas else "detail"
+                meta_value = row[entry]
+            elif entry == "adresse":
+                meta_key = "adresse-complete"
+                adresseComplete = row[entry] + ' '+ row['code_postal']
+                meta_value = adresseComplete
+            elif entry == "tel":
+                meta_key = "numero-de-telephone"
+                meta_value = row[entry]
+            elif entry == "nom":
+                meta_key = "nom-complete"
+                meta_value = row[entry]
+            elif entry in ["id_consistoire", "id_ville_h", "code_postal"]:
+                continue
+            elif "nom-prenom" in entry:
+                meta_key = "nom-complet-"
+                meta_value = row[entry]
+            elif entry == "ville":
+                meta_key = "ville"
+                meta_value = row[entry].capitalize()
+            elif "fonction" in entry:
+                isDirigeant = True
+                number = re.findall(r"\d+", entry)
+                number = "" if not number else int(number[0])
+                text = row["nom-prenom" + str(number)].lower()
+                if "," in text:
+                    # pattern = re.compile(r"\b[a-zA-ZÀ-ÿ\s\.\-]+(?=:)", re.UNICODE)
+                    # names = pattern.findall(text)
+                    names = text.split(", ")
+                    for name in names:
+                        idPostMembre = findIdPostMembre(connection, name)
                         if not idPostMembre:
-                            idPostMembre = createAndReturnIdMember(
-                                connection, text, actualTime, text
+                            lastRowId = createAndReturnIdMember(
+                                connection, name, actualTime, name
                             )
-                            arrayIdsMembers.append(idPostMembre)
-                        #     # idPostMembre = findIdPostMembre(connection, row['nom-prenom'+str(number)])
+                            arrayIdsMembers.append(lastRowId)
                         else:
                             arrayIdsMembers.append(idPostMembre)
-                        createPostMeta(
-                            connection, row[entry], "status", idPostMembre
-                        )
+                            createPostMeta(
+                                connection, row[entry], "status", idPostMembre
+                            )
                 else:
-                    meta_key = re.sub(r"\d+", "", entry)
-                    meta_value = transformValue(row[entry])
-                    createPostMeta(connection, meta_value, meta_key, idContactSyna)
-
-            if isDirigeant:
-                result = ";".join(
-                    [
-                        f'i:{i};s:{len(str(value))}:"{value}"'
-                        for i, value in enumerate(arrayIdsMembers)
-                    ]
-                )
-                metaDirigeants = {
-                    "meta_key": "dirigeants",
-                    "meta_value": f"a:{len(arrayIdsMembers)}:{{{result}}}",
-                }
-                idSyna = findIdSyna(connection, row["ville"].capitalize())
-                if idSyna:
+                    if len(text) > 200:
+                        text = text[:200]
+                    idPostMembre = findIdPostMembre(connection, text)
+                    if not idPostMembre:
+                        idPostMembre = createAndReturnIdMember(
+                            connection, text, actualTime, text
+                        )
+                        arrayIdsMembers.append(idPostMembre)
+                    #     # idPostMembre = findIdPostMembre(connection, row['nom-prenom'+str(number)])
+                    else:
+                        arrayIdsMembers.append(idPostMembre)
                     createPostMeta(
-                        connection,
-                        metaDirigeants["meta_value"],
-                        metaDirigeants["meta_key"],
-                        idSyna
+                        connection, row[entry], "status", idPostMembre
                     )
-        except Exception as e:
-            print(f"Error inserting data: {str(e)}")
+            else:
+                meta_key = re.sub(r"\d+", "", entry)
+                meta_value = transformValue(row[entry])
+            createPostMeta(connection, meta_value, meta_key, idContactSyna)
+        if isDirigeant:
+            result = ";".join(
+                [
+                    f'i:{i};s:{len(str(value))}:"{value}"'
+                    for i, value in enumerate(arrayIdsMembers)
+                ]
+            )
+            metaDirigeants = {
+                "meta_key": "dirigeants",
+                "meta_value": f"a:{len(arrayIdsMembers)}:{{{result}}}",
+            }
+            idSyna = findIdSynaByCpAndAdress(connection, row)
+            if idSyna:
+                createPostMeta(
+                    connection,
+                    metaDirigeants["meta_value"],
+                    metaDirigeants["meta_key"],
+                    idSyna
+                )
+    except Exception as e:
+        print(f"Error inserting data: {str(e)}")
 
 
 # Lire le fichier JSON
