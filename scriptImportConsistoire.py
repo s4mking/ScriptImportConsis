@@ -12,7 +12,7 @@ import time
 # pip install openpyxl
 # pip install mysql-connector-python
 # pip install beautifulsoup4
-# pip install re
+# pip install requests
 # python3 scriptImportConsistoire.py
 
 
@@ -69,19 +69,19 @@ def parcourir_json(data, connection, indentation=0, parent_key=""):
 
 def connectDatabase():
     try:
-        # connection = mysql.connector.connect(
-        #     host="127.0.0.1",
-        #     database="local",
-        #     user="samuel",
-        #     password="samuel",
-        #     port=10005,
-        # )
-        connectionDev = mysql.connector.connect(host='localhost',
-                                             database='consistoirefr',
-                                             user='wp_brrvv',
-                                             password='64nL@_X5B@1*d?H&',
-                                             port=3306)
-        return connectionDev
+        connection = mysql.connector.connect(
+            host="127.0.0.1",
+            database="local",
+            user="samuel",
+            password="samuel",
+            port=10005
+        )
+        # connectionDev = mysql.connector.connect(host='localhost',
+        #                                      database='consistoirefr',
+        #                                      user='wp_brrvv',
+        #                                      password='64nL@_X5B@1*d?H&',
+        #                                      port=3306)
+        return connection
     except mysql.connector.Error as error:
         print("Error while connecting to MySQL", error)
 
@@ -137,6 +137,13 @@ def getLastIdAddOne(connection):
     cursor.execute(select)
     return cursor.fetchone()[0] + 1
 
+def selectEverySynas(connection):
+    cursor = connection.cursor(buffered=True)
+    select = "SELECT id FROM J6e0wfWFh_posts WHERE J6e0wfWFh_posts.post_type = %s "
+    tupple = 'synagogue'
+    cursor.execute(select, (tupple,))
+    result = cursor.fetchall()
+    return result
 
 def createAndReturnIdMember(connection, name, actualTime, text):
     queryMembrePost = "INSERT INTO J6e0wfWFh_posts (post_author, post_date, post_date_gmt, post_content, post_title, post_excerpt, post_name, to_ping, pinged, post_modified, post_modified_gmt, post_content_filtered, guid, post_type) VALUES (%(post_author)s, %(post_date)s, %(post_date_gmt)s, %(post_content)s, %(post_title)s, %(post_excerpt)s, %(post_name)s, %(to_ping)s, %(pinged)s, %(post_modified)s, %(post_modified_gmt)s, %(post_content_filtered)s, %(guid)s, %(post_type)s)"
@@ -268,6 +275,13 @@ def countSynasByVille(rows):
             counts[ville] = counts.get(ville, 0) + 1
     return counts
 
+def updateConsistoireForSynas(connection):
+    synas = selectEverySynas(connection)
+    for syna in synas:
+        if findIfSameMetaNameWithSamePostId(connection, syna[0], 'consistoire') is None:
+                createPostMeta(connection, 'Consistoire de ville', "consistoire", syna[0])
+        else:
+            updatePostMeta(connection, 'Consistoire de ville', "consistoire", syna[0])
 
 def insertData(connection, row, countsByVille):
     actualTime = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -365,7 +379,6 @@ def insertData(connection, row, countsByVille):
 
                     # createPostMeta(connection, row[entry], "status", idPostMembre)
                     if findIfSameMetaNameWithSamePostId(connection, idContactSyna, meta_key) is None:
-                        print('totot')
                         createPostMeta(connection, row[entry], "status", idPostMembre)
                     else:
                         updatePostMeta(connection, row[entry], "status", idPostMembre)
@@ -409,7 +422,7 @@ parcourir_json(response.json(), connection)
 countsByVille = countSynasByVille(rows)
 for row in rows:
     insertData(connection, row, countsByVille)
-
+updateConsistoireForSynas(connection)
 # excel_file_path = 'questions.xlsx'
 
 # # Load the Excel file
