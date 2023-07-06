@@ -6,14 +6,15 @@ import mysql.connector
 from mysql.connector import Error
 import time
 
-# How to run this script 
+# How to run this script
 # python3 -m venv script
 # source script/bin/activate
-# pip install openpyxl 
-# pip install mysql-connector-python 
+# pip install openpyxl
+# pip install mysql-connector-python
 # pip install beautifulsoup4
 # pip install re
 # python3 scriptImportConsistoire.py
+
 
 def has_class_but_no_id(tag):
     return tag.has_attr("class") and not tag.has_attr("id")
@@ -75,6 +76,11 @@ def connectDatabase():
             password="samuel",
             port=10005,
         )
+        # connectionDev = mysql.connector.connect(host='80.119.208.4',
+        #                                      database='consistoirefr',
+        #                                      user='wp_brrvv',
+        #                                      password='64nL@_X5B@1*d?H&',
+        #                                      port=8443)
         return connection
     except mysql.connector.Error as error:
         print("Error while connecting to MySQL", error)
@@ -94,21 +100,28 @@ def findIdPostMembre(connection, name):
     result = cursor.fetchone()
     return result[0] if result is not None else None
 
+def findIfSameMetaNameWithSamePostId(connection, postId, metaname):
+    cursor = connection.cursor(buffered=True)
+    select = "SELECT meta_id FROM J6e0wfWFh_postmeta WHERE J6e0wfWFh_postmeta.post_id = %s AND J6e0wfWFh_postmeta.meta_key = %s "
+    cursor.execute(select, (postId , metaname))
+    result = cursor.fetchone()
+    return result[0] if result is not None else None
+
 
 def findCommunaute(connection, id):
     cursor = connection.cursor(buffered=True)
     select = "SELECT post_title FROM J6e0wfWFh_posts WHERE J6e0wfWFh_posts.ID = %s"
     cursor.execute(select, (id,))
     return cursor.fetchone()
-    
 
 
 def findIdSynaByCpAndAdress(connection, row):
     cursor = connection.cursor(buffered=True)
-    select = "SELECT id FROM J6e0wfWFh_posts INNER JOIN J6e0wfWFh_postmeta ON J6e0wfWFh_postmeta.post_id = J6e0wfWFh_posts.id WHERE J6e0wfWFh_postmeta.meta_value LIKE %s AND J6e0wfWFh_posts.post_type = %s "
-    cursor.execute(select, ('%'+row['adresse']+'%', "synagogue"))
+    select = "SELECT id FROM J6e0wfWFh_posts INNER JOIN J6e0wfWFh_postmeta ON J6e0wfWFh_postmeta.post_id = J6e0wfWFh_posts.id WHERE J6e0wfWFh_postmeta.meta_value LIKE %s AND J6e0wfWFh_postmeta.meta_key = 'adresse-complete' AND J6e0wfWFh_posts.post_type = %s "
+    cursor.execute(select, ("%" + row["adresse"] + "%", "synagogue"))
     result = cursor.fetchone()
     return result[0] if result is not None else None
+
 
 def findIdSynaByVille(connection, name):
     cursor = connection.cursor(buffered=True)
@@ -117,11 +130,13 @@ def findIdSynaByVille(connection, name):
     result = cursor.fetchone()
     return result[0] if result is not None else None
 
+
 def getLastIdAddOne(connection):
     cursor = connection.cursor(buffered=True)
     select = "SELECT id from J6e0wfWFh_posts ORDER BY id DESC LIMIT 1"
     cursor.execute(select)
-    return cursor.fetchone()[0]+1
+    return cursor.fetchone()[0] + 1
+
 
 def createAndReturnIdMember(connection, name, actualTime, text):
     queryMembrePost = "INSERT INTO J6e0wfWFh_posts (post_author, post_date, post_date_gmt, post_content, post_title, post_excerpt, post_name, to_ping, pinged, post_modified, post_modified_gmt, post_content_filtered, guid, post_type) VALUES (%(post_author)s, %(post_date)s, %(post_date_gmt)s, %(post_content)s, %(post_title)s, %(post_excerpt)s, %(post_name)s, %(to_ping)s, %(pinged)s, %(post_modified)s, %(post_modified_gmt)s, %(post_content_filtered)s, %(guid)s, %(post_type)s)"
@@ -139,7 +154,7 @@ def createAndReturnIdMember(connection, name, actualTime, text):
         "post_modified": actualTime,
         "post_modified_gmt": actualTime,
         "post_content_filtered": "",
-        "guid": "http://consistoire.local/?post_type=dirigeants&#038;p="+str(lastId),
+        "guid": "http://consistoire.local/?post_type=dirigeants&#038;p=" + str(lastId),
         "post_type": "dirigeants",
     }
     cursor = connection.cursor(buffered=True)
@@ -158,12 +173,27 @@ def createPostMeta(connection, entry, meta_key, id):
     )
     connection.commit()
 
+def updatePostMeta(connection, entry, meta_key, id):
+    cursor = connection.cursor(buffered=True)
+    query_postmetamember = "UPDATE J6e0wfWFh_postmeta SET meta_value = %s  WHERE post_id = %s AND meta_key = %s"
+    meta_value = transformValue(entry)
+    cursor.execute(
+        query_postmetamember,
+        (meta_value, id, meta_key),
+    )
+    connection.commit()
+
+
 def findcontactSynaAndReturnId(connection, actualTime):
     cursor = connection.cursor(buffered=True)
     select = "SELECT id FROM J6e0wfWFh_posts INNER JOIN J6e0wfWFh_postmeta ON J6e0wfWFh_postmeta.post_id = J6e0wfWFh_posts.id WHERE J6e0wfWFh_postmeta.meta_value LIKE %s AND J6e0wfWFh_posts.post_type = %s "
-    cursor.execute(select, ('%'+row['adresse']+'%', "contact-des-synagogu"))
+    cursor.execute(
+        select,
+        ("%" + row["adresse"] + " " + row["code_postal"] + "%", "contact-des-synagogu"),
+    )
     result = cursor.fetchone()
     return result[0] if result is not None else None
+
 
 def createPostContactSynaAndReturnId(connection, actualTime):
     queryContactSynaPost = "INSERT INTO J6e0wfWFh_posts (post_author, post_date, post_date_gmt, post_content, post_title, post_excerpt, post_name, to_ping, pinged, post_modified, post_modified_gmt, post_content_filtered, guid, post_type) VALUES (%(post_author)s, %(post_date)s, %(post_date_gmt)s, %(post_content)s, %(post_title)s, %(post_excerpt)s, %(post_name)s, %(to_ping)s, %(pinged)s, %(post_modified)s, %(post_modified_gmt)s, %(post_content_filtered)s, %(guid)s, %(post_type)s)"
@@ -181,10 +211,10 @@ def createPostContactSynaAndReturnId(connection, actualTime):
         "post_modified": actualTime,
         "post_modified_gmt": actualTime,
         "post_content_filtered": "",
-        "guid": "http://consistoire.local/?post_type=contact-des-synagogu&#038;p="+str(lastId),
+        "guid": "http://consistoire.local/?post_type=contact-des-synagogu&#038;p="
+        + str(lastId),
         "post_type": "contact-des-synagogu",
     }
-
     cursor = connection.cursor(buffered=True)
     cursor.execute(queryContactSynaPost, postContent)
     connection.commit()
@@ -241,19 +271,20 @@ def countSynasByVille(rows):
 
 def insertData(connection, row, countsByVille):
     actualTime = time.strftime("%Y-%m-%d %H:%M:%S")
-    multiSynas=False
-    # Plusieurs synagogues dans la ville 
-    if (countsByVille[row["ville"]]) > 1:
+    multiSynas = False
+    # Plusieurs synagogues dans la ville
+    if (countsByVille[row["ville"]]) > 1 or int(row['id_ville_h']) == 13:
         idContactSyna = findcontactSynaAndReturnId(connection, row)
         if not idContactSyna:
             idContactSyna = createPostContactSynaAndReturnId(connection, actualTime)
+
         multiSynas = True
 
     # 1 syna = 1 ville
     else:
-        #Si adrresse et code postal similaire alors on ne rentre pas
+        # Si adrresse et code postal similaire alors on ne rentre pas
         idContactSyna = findIdSynaByVille(connection, row["ville"].capitalize())
-    #la ville correspondante n'est pas trouvé on sort
+        # la ville correspondante n'est pas trouvé on sort
         if not idContactSyna:
             return
     try:
@@ -261,8 +292,6 @@ def insertData(connection, row, countsByVille):
         arrayIdsMembers = []
 
         for entry in row:
-            # print(entry)
-            # print(row[entry])
             if entry == "id_region":
                 meta_key = "region"
                 meta_value = findIdRegion(int(row[entry]))
@@ -273,28 +302,33 @@ def insertData(connection, row, countsByVille):
                     meta_value = titleCommunaute[0]
                 else:
                     continue
-            #Dans ma compréhension si on a 1 seul Syna alors c'estdescription-princiaple sinon c'est le detail non?
+            # Dans ma compréhension si on a 1 seul Syna alors c'estdescription-princiaple sinon c'est le detail non?
             elif entry == "historique":
-                meta_key = "description-principale" if multiSynas else "detail"
+                # meta_key = "description-principale" if multiSynas else "detail"
+                meta_key = "description-principale"
                 meta_value = row[entry]
             elif entry == "adresse":
                 meta_key = "adresse-complete"
-                adresseComplete = row[entry] + ' '+ row['code_postal']
+                adresseComplete = row[entry] + " " + row["code_postal"]
                 meta_value = adresseComplete
             elif entry == "tel":
                 meta_key = "numero-de-telephone"
                 meta_value = row[entry]
             elif entry == "nom":
-                meta_key = "nom-complete"
+                meta_key = "nom-complet"
                 meta_value = row[entry]
             elif entry in ["id_consistoire", "id_ville_h", "code_postal"]:
                 continue
             elif "nom-prenom" in entry:
+                continue
                 meta_key = "nom-complet-"
                 meta_value = row[entry]
             elif entry == "ville":
                 meta_key = "ville"
-                meta_value = row[entry].capitalize()
+                if int(row['id_ville_h']) == 13:
+                    meta_value = "Paris"
+                else:
+                    meta_value = row[entry].capitalize()
             elif "fonction" in entry:
                 isDirigeant = True
                 number = re.findall(r"\d+", entry)
@@ -328,13 +362,21 @@ def insertData(connection, row, countsByVille):
                     #     # idPostMembre = findIdPostMembre(connection, row['nom-prenom'+str(number)])
                     else:
                         arrayIdsMembers.append(idPostMembre)
-                    createPostMeta(
-                        connection, row[entry], "status", idPostMembre
-                    )
+
+                    # createPostMeta(connection, row[entry], "status", idPostMembre)
+                    if findIfSameMetaNameWithSamePostId(connection, idContactSyna, meta_key) is None:
+                        print('totot')
+                        createPostMeta(connection, row[entry], "status", idPostMembre)
+                    else:
+                        updatePostMeta(connection, row[entry], "status", idPostMembre)
+                    continue
             else:
                 meta_key = re.sub(r"\d+", "", entry)
                 meta_value = transformValue(row[entry])
-            createPostMeta(connection, meta_value, meta_key, idContactSyna)
+            if findIfSameMetaNameWithSamePostId(connection, idContactSyna, meta_key) is None:
+                createPostMeta(connection, meta_value, meta_key, idContactSyna)
+            else:
+                updatePostMeta(connection, meta_value, meta_key, idContactSyna)
         if isDirigeant:
             result = ";".join(
                 [
@@ -342,18 +384,17 @@ def insertData(connection, row, countsByVille):
                     for i, value in enumerate(arrayIdsMembers)
                 ]
             )
+            result+=';'
             metaDirigeants = {
                 "meta_key": "dirigeants",
                 "meta_value": f"a:{len(arrayIdsMembers)}:{{{result}}}",
             }
             idSyna = findIdSynaByCpAndAdress(connection, row)
             if idSyna:
-                createPostMeta(
-                    connection,
-                    metaDirigeants["meta_value"],
-                    metaDirigeants["meta_key"],
-                    idSyna
-                )
+                if findIfSameMetaNameWithSamePostId(connection, idSyna, metaDirigeants["meta_key"]) is None:
+                    createPostMeta(connection, metaDirigeants["meta_value"], metaDirigeants["meta_key"], idSyna)
+                else:
+                    updatePostMeta(connection, metaDirigeants["meta_value"], metaDirigeants["meta_key"], idSyna)
     except Exception as e:
         print(f"Error inserting data: {str(e)}")
 
