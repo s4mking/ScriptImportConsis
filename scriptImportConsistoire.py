@@ -69,19 +69,19 @@ def parcourir_json(data, connection, indentation=0, parent_key=""):
 
 def connectDatabase():
     try:
-        connection = mysql.connector.connect(
-            host="127.0.0.1",
-            database="local",
-            user="samuel",
-            password="samuel",
-            port=10005,
-        )
-        # connectionDev = mysql.connector.connect(host='80.119.208.4',
-        #                                      database='consistoirefr',
-        #                                      user='wp_brrvv',
-        #                                      password='64nL@_X5B@1*d?H&',
-        #                                      port=8443)
-        return connection
+        # connection = mysql.connector.connect(
+        #     host="127.0.0.1",
+        #     database="local",
+        #     user="samuel",
+        #     password="samuel",
+        #     port=10005,
+        # )
+        connectionDev = mysql.connector.connect(host='localhost',
+                                             database='consistoirefr',
+                                             user='wp_brrvv',
+                                             password='64nL@_X5B@1*d?H&',
+                                             port=3306)
+        return connectionDev
     except mysql.connector.Error as error:
         print("Error while connecting to MySQL", error)
 
