@@ -105,18 +105,30 @@ def parcourirJsonConsistoire(data, connection, indentation=0, parent_key=""):
 
 def connectDatabase():
     try:
+        local = {
+            'host': "127.0.0.1",
+            'database': "local",
+            'user': "samuel",
+            'password': "samuel",
+            'port': 10005
+        }
+
+        dev = {
+            'host': "localhost",
+            'database': "consistoirefr",
+            'user': "wp_brrvv",
+            'password': "64nL@_X5B@1*d?H&",
+            'port': 3306
+        }
+
         connection = mysql.connector.connect(
-            host="127.0.0.1",
-            database="local",
-            user="samuel",
-            password="samuel",
-            port=10005
+            host= local['host'],
+            database=local['database'],
+            user=local['user'],
+            password=local['password'],
+            port=local['port']
         )
-        # connectionDev = mysql.connector.connect(host='localhost',
-        #                                      database='consistoirefr',
-        #                                      user='wp_brrvv',
-        #                                      password='64nL@_X5B@1*d?H&',
-        #                                      port=3306)
+
         return connection
     except mysql.connector.Error as error:
         print("Error while connecting to MySQL", error)
@@ -240,7 +252,7 @@ def updatePostMeta(connection, entry, meta_key, id):
     connection.commit()
 
 def createOrUpdatePostMeta(connection, entry, meta_key, id):
-    if findIfSameMetaNameWithSamePostId(connection, id, id) is None:
+    if findIfSameMetaNameWithSamePostId(connection, id, meta_key) is None:
         createPostMeta(connection, entry, meta_key, id)
     else:
         updatePostMeta(connection, entry, meta_key, id)
@@ -602,19 +614,9 @@ def insertDataConsistoires(connection, row):
                                 connection, role, "status", idPostMembre
                             )
             
-                    # createPostMeta(connection, row[entry], "status", idPostMembre)
-                    # if findIfSameMetaNameWithSamePostId(connection, idSyna, meta_key) is None:
-                    #     createPostMeta(connection, row[entry], "status", idPostMembre)
-                    # else:
-                    #     updatePostMeta(connection, row[entry], "status", idPostMembre)
-                    # continue
             else:
                 meta_key = re.sub(r"\d+", "", entry)
                 meta_value = transformValue(row[entry])
-            # if findIfSameMetaNameWithSamePostId(connection, idSyna, meta_key) is None:
-            #     createPostMeta(connection, meta_value, meta_key, idSyna)
-            # else:
-            #     updatePostMeta(connection, meta_value, meta_key, idSyna)
             if findIfSameMetaNameWithSamePostId(connection, idSyna, meta_key) is None:
                 createPostMeta(connection, meta_value, meta_key, idSyna)
             else:
@@ -631,11 +633,10 @@ def insertDataConsistoires(connection, row):
                 "meta_key": "dirigeants",
                 "meta_value": f"a:{len(arrayIdsMembers)}:{{{result}}}",
             }
-            createOrUpdatePostMeta(connection, metaDirigeants["meta_value"], metaDirigeants["meta_key"], idSyna)
-            # if findIfSameMetaNameWithSamePostId(connection, idSyna, metaDirigeants["meta_key"]) is None:
-            #     createPostMeta(connection, metaDirigeants["meta_value"], metaDirigeants["meta_key"], idSyna)
-            # else:
-            #     updatePostMeta(connection, metaDirigeants["meta_value"], metaDirigeants["meta_key"], idSyna)
+            if findIfSameMetaNameWithSamePostId(connection, idSyna, metaDirigeants["meta_key"]) is None:
+                createPostMeta(connection, metaDirigeants["meta_value"], metaDirigeants["meta_key"], idSyna)
+            else:
+                updatePostMeta(connection, metaDirigeants["meta_value"], metaDirigeants["meta_key"], idSyna)
     except Exception as e:
         print(f"Error inserting data: {str(e)}")
 
