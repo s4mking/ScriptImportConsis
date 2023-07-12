@@ -6,25 +6,15 @@ import mysql.connector
 from mysql.connector import Error
 import time
 
-# How to run this script
-# python3 -m venv script
-# source script/bin/activate
-# pip install openpyxl
-# pip install mysql-connector-python
-# pip install beautifulsoup4
-# pip install requests
-# python3 scriptImportConsistoire.py
-
-
 def has_class_but_no_id(tag):
     return tag.has_attr("class") and not tag.has_attr("id")
 
 
-def parcourir_json(data, connection, indentation=0, parent_key=""):
+def parcourirJsonCommunautes(data, connection, indentation=0, parent_key=""):
     if isinstance(data, list):
         for i, item in enumerate(data):
             new_key = parent_key + "[{}]".format(i)
-            parcourir_json(item, connection, indentation, new_key)
+            parcourirJsonCommunautes(item, connection, indentation, new_key)
     else:
         soup = BeautifulSoup(data["detail"], "html.parser")
         soup = soup.find_all(has_class_but_no_id)
@@ -66,22 +56,68 @@ def parcourir_json(data, connection, indentation=0, parent_key=""):
         obj.update(detail)
         rows.append(obj)
 
+def parcourirJsonConsistoire(data, connection, indentation=0, parent_key=""):
+    if isinstance(data, list):
+        for i, item in enumerate(data):
+            new_key = parent_key + "[{}]".format(i)
+            parcourirJsonConsistoire(item, connection, indentation, new_key)
+    else:
+        soup = BeautifulSoup(data["detail"], "html.parser")
+        soup = soup.find_all(has_class_but_no_id)
+        detail = {}
+        tags = {}
+
+        for tag in soup:
+            if tag.has_attr("class"):
+                class_attr = tag["class"][0]
+                if class_attr in tags:
+                    count = tags[class_attr] + 1
+                    tags[class_attr] = count
+                    class_attr += str(count)
+                    detail[class_attr] = str(tag.text)
+                else:
+                    tags[class_attr] = 0
+                    detail[tag["class"][0]] = str(tag.text)
+            
+        soup = BeautifulSoup(data["detail"], 'html.parser')
+        divs = soup.find_all('div')
+        last_span_end = data["detail"].find(str(divs[-1])) + len(str(divs[-1]))
+        text_after_last_span = data["detail"][last_span_end:].strip()
+        obj = {
+            "id_consistoire": data["id_consistoire"],
+            "id_region": data["id_region"],
+            "id_ville_h": data["id_ville_h"],
+            "nom": data["nom"],
+            "adresse": data["adresse"],
+            "code_postal": data["code_postal"],
+            "ville": data["ville"],
+            "latitude": data["latitude"],
+            "longitude": data["longitude"],
+            "tel": data["tel"],
+            "email": data["email"],
+            "regional": data["regional"],
+            "membres": text_after_last_span,
+        }
+
+        obj.update(detail)
+        rows.append(obj)
+
 
 def connectDatabase():
     try:
-        # connection = mysql.connector.connect(
-        #     host="127.0.0.1",
-        #     database="local",
-        #     user="samuel",
-        #     password="samuel",
-        #     port=10005
-        # )
-        connectionDev = mysql.connector.connect(host='localhost',
-                                             database='consistoirefr',
-                                             user='wp_brrvv',
-                                             password='64nL@_X5B@1*d?H&',
-                                             port=3306)
-        return connectionDev
+        connection = mysql.connector.connect(
+            host="127.0.0.1",
+            database="local",
+            user="samuel",
+            password="samuel",
+            port=10005
+        )
+        # connectionDev = mysql.connector.connect(host='localhost',
+        #                                      database='consistoirefr',
+        #                                      user='wp_brrvv',
+        #                                      password='64nL@_X5B@1*d?H&',
+        #                                      port=3306)
+        return connection
     except mysql.connector.Error as error:
         print("Error while connecting to MySQL", error)
 
@@ -130,6 +166,13 @@ def findIdSynaByVille(connection, name):
     result = cursor.fetchone()
     return result[0] if result is not None else None
 
+def findIdConsistoireRégionalByVille(connection, name):
+    cursor = connection.cursor(buffered=True)
+    select = "SELECT id FROM J6e0wfWFh_posts INNER JOIN J6e0wfWFh_postmeta ON J6e0wfWFh_postmeta.post_id = J6e0wfWFh_posts.id WHERE J6e0wfWFh_posts.post_title = %s AND J6e0wfWFh_posts.post_type = %s AND J6e0wfWFh_postmeta.meta_value LIKE %s"
+    cursor.execute(select, (name, "synagogue","%Consistoire régional%"))
+    result = cursor.fetchone()
+    return result[0] if result is not None else None
+
 
 def getLastIdAddOne(connection):
     cursor = connection.cursor(buffered=True)
@@ -139,9 +182,8 @@ def getLastIdAddOne(connection):
 
 def selectEverySynas(connection):
     cursor = connection.cursor(buffered=True)
-    select = "SELECT id FROM J6e0wfWFh_posts WHERE J6e0wfWFh_posts.post_type = %s "
-    tupple = 'synagogue'
-    cursor.execute(select, (tupple,))
+    select = "SELECT id FROM J6e0wfWFh_posts INNER JOIN J6e0wfWFh_postmeta ON J6e0wfWFh_postmeta.post_id = J6e0wfWFh_posts.id WHERE J6e0wfWFh_posts.post_type = %s AND J6e0wfWFh_postmeta.meta_value NOT LIKE %s"
+    cursor.execute(select, ("synagogue","%Consistoire régional%"))
     result = cursor.fetchall()
     return result
 
@@ -227,6 +269,31 @@ def createPostContactSynaAndReturnId(connection, actualTime):
     connection.commit()
     return cursor.lastrowid
 
+def createSynaAndReturnId(connection, actualTime):
+    queryContactSynaPost = "INSERT INTO J6e0wfWFh_posts (post_author, post_date, post_date_gmt, post_content, post_title, post_excerpt, post_name, to_ping, pinged, post_modified, post_modified_gmt, post_content_filtered, guid, post_type) VALUES (%(post_author)s, %(post_date)s, %(post_date_gmt)s, %(post_content)s, %(post_title)s, %(post_excerpt)s, %(post_name)s, %(to_ping)s, %(pinged)s, %(post_modified)s, %(post_modified_gmt)s, %(post_content_filtered)s, %(guid)s, %(post_type)s)"
+    lastId = getLastIdAddOne(connection)
+    postContent = {
+        "post_author": 1,
+        "post_date": actualTime,
+        "post_date_gmt": actualTime,
+        "post_content": "",
+        "post_title": row["nom"],
+        "post_excerpt": "",
+        "to_ping": "",
+        "pinged": "",
+        "post_name": row["nom"].lower().replace(" ", "-"),
+        "post_modified": actualTime,
+        "post_modified_gmt": actualTime,
+        "post_content_filtered": "",
+        "guid": "http://consistoire.local/?post_type=synagogues&#038;p="
+        + str(lastId),
+        "post_type": "synagogue",
+    }
+    cursor = connection.cursor(buffered=True)
+    cursor.execute(queryContactSynaPost, postContent)
+    connection.commit()
+    return cursor.lastrowid
+
 
 def findIdRegion(id):
     regions = [
@@ -283,7 +350,38 @@ def updateConsistoireForSynas(connection):
         else:
             updatePostMeta(connection, 'Consistoire de ville', "consistoire", syna[0])
 
-def insertData(connection, row, countsByVille):
+def updateContactSynasForConsistoire(connection, listVilles):
+    listConsistoireById = {
+    1541 : 'CONSISTOIRE DU BAS-RHIN',
+    1505: 'CONSISTOIRE JUIF REGIONAL AUVERGNE RHONE-ALPES',
+    1493: 'CONSISTOIRE REGIONAL DU PAYS DE LA GARONNE',
+    1468: 'NICE - ACIN',
+    1610: 'CONSISTOIRE DE BOURGOGNE FRANCHE COMTÉ - DIJON',
+    1: 'PARIS',
+    1438: 'MARSEILLE'
+    }
+    for consistoire in listVilles:
+        if consistoire != '0':
+            idConsistoire = findIdConsistoireRégionalByVille(connection, listConsistoireById[int(consistoire)])
+            if idConsistoire:
+                result = ";".join(
+                [
+                    f'i:{i};s:{len(str(value))}:"{value}"'
+                    for i, value in enumerate(listVilles[consistoire])
+                ]
+                )
+                result+=';'
+                metaDirigeants = {
+                    "meta_key": "contact-des-synagogues-de-la-ville",
+                    "meta_value": f"a:{len(listVilles[consistoire])}:{{{result}}}",
+                }
+                if findIfSameMetaNameWithSamePostId(connection, idConsistoire, metaDirigeants["meta_key"]) is None:
+                    createPostMeta(connection, metaDirigeants["meta_value"], metaDirigeants["meta_key"], idConsistoire)
+                else:
+                    updatePostMeta(connection, metaDirigeants["meta_value"], metaDirigeants["meta_key"], idConsistoire)
+
+
+def insertDataContact(connection, row, countsByVille):
     actualTime = time.strftime("%Y-%m-%d %H:%M:%S")
     multiSynas = False
     # Plusieurs synagogues dans la ville
@@ -302,6 +400,9 @@ def insertData(connection, row, countsByVille):
         if not idContactSyna:
             return
     try:
+        if row['id_consistoire'] not in new_dict:
+            new_dict[row['id_consistoire']] = []
+        new_dict[row['id_consistoire']].append(idContactSyna)    
         isDirigeant = False
         arrayIdsMembers = []
 
@@ -411,37 +512,141 @@ def insertData(connection, row, countsByVille):
     except Exception as e:
         print(f"Error inserting data: {str(e)}")
 
+def insertDataConsistoires(connection, row):
+    actualTime = time.strftime("%Y-%m-%d %H:%M:%S")
+    # idContactSyna = findcontactSynaAndReturnId(connection, row)
+    # if not idContactSyna:
+    #     idContactSyna = createPostContactSynaAndReturnId(connection, actualTime)
+    if row['nom'] == 'NICE - ACIN':
+        idSyna = findIdConsistoireRégionalByVille(connection, row['nom'])
+        if not idSyna:
+            idSyna = createSynaAndReturnId(connection, actualTime)
+            createPostMeta(connection, 'Consistoire régional', 'consistoire', idSyna)
+        try:
+            isDirigeant = False
+            arrayIdsMembers = []
 
-# Lire le fichier JSON
-url = "http://www.consistoire.org/getJson?f=_communaute"
-response = requests.get(url)
+            for entry in row:
+                print(row['nom'])
+                print(entry)
+                if entry == "id_region":
+                    meta_key = "region"
+                    meta_value = findIdRegion(int(row[entry]))
+                elif entry == "historique":
+                    # meta_key = "description-principale" if multiSynas else "detail"
+                    meta_key = "description-principale"
+                    meta_value = row[entry]
+                elif entry == "adresse":
+                    meta_key = "adresse-complete"
+                    adresseComplete = row[entry] + " " + row["code_postal"]
+                    meta_value = adresseComplete
+                elif entry == "tel":
+                    meta_key = "numero-de-telephone"
+                    meta_value = row[entry]
+                elif entry == "nom":
+                    meta_key = "nom-complet"
+                    meta_value = row[entry]
+                elif entry in ["id_consistoire", "id_ville_h", "code_postal"]:
+                    continue
+                elif entry == "ville":
+                    meta_key = "ville"
+                    meta_value = row[entry].capitalize()
+                elif "membres" in entry:
+                    text = row[entry]
+                    isDirigeant = True
+                    roles_and_names = text.split('<br>')
+
+                    # Création d'un dictionnaire pour stocker les rôles et les noms
+                    roles_and_names_dict = {}
+
+                    for role_and_name in roles_and_names:
+                        # Séparation du rôle et du nom
+                        role, names = role_and_name.split(':')
+                        print('toto')
+                        # Suppression des espaces blancs au début et à la fin
+                        role = role.strip()
+                        # Conversion des noms en une liste de noms, en supprimant les espaces blancs au début et à la fin de chaque nom
+                        names = [name.strip() for name in names.split(',')]
+                        # Ajout du rôle et des noms au dictionnaire
+                        roles_and_names_dict[role] = names
+
+                    for role, names in roles_and_names_dict.items():
+                        for name in names:
+                            idPostMembre = findIdPostMembre(connection, name)
+                            if not idPostMembre:
+                                lastRowId = createAndReturnIdMember(
+                                    connection, name, actualTime, name
+                                )
+                                arrayIdsMembers.append(lastRowId)
+                            else:
+                                arrayIdsMembers.append(idPostMembre)
+                                createPostMeta(
+                                    connection, role, "status", idPostMembre
+                                )
+                
+                        # createPostMeta(connection, row[entry], "status", idPostMembre)
+                        # if findIfSameMetaNameWithSamePostId(connection, idSyna, meta_key) is None:
+                        #     createPostMeta(connection, row[entry], "status", idPostMembre)
+                        # else:
+                        #     updatePostMeta(connection, row[entry], "status", idPostMembre)
+                        # continue
+                # else:
+                #     meta_key = re.sub(r"\d+", "", entry)
+                #     meta_value = transformValue(row[entry])
+                # if findIfSameMetaNameWithSamePostId(connection, idSyna, meta_key) is None:
+                #     createPostMeta(connection, meta_value, meta_key, idSyna)
+                # else:
+                #     updatePostMeta(connection, meta_value, meta_key, idSyna)
+                if findIfSameMetaNameWithSamePostId(connection, idSyna, meta_key) is None:
+                    createPostMeta(connection, meta_value, meta_key, idSyna)
+                else:
+                    updatePostMeta(connection, meta_value, meta_key, idSyna)
+            if isDirigeant:
+                result = ";".join(
+                    [
+                        f'i:{i};s:{len(str(value))}:"{value}"'
+                        for i, value in enumerate(arrayIdsMembers)
+                    ]
+                )
+                result+=';'
+                metaDirigeants = {
+                    "meta_key": "dirigeants",
+                    "meta_value": f"a:{len(arrayIdsMembers)}:{{{result}}}",
+                }
+                if findIfSameMetaNameWithSamePostId(connection, idSyna, metaDirigeants["meta_key"]) is None:
+                    createPostMeta(connection, metaDirigeants["meta_value"], metaDirigeants["meta_key"], idSyna)
+                else:
+                    updatePostMeta(connection, metaDirigeants["meta_value"], metaDirigeants["meta_key"], idSyna)
+        except Exception as e:
+            print(f"Error inserting data: {str(e)}")
+
+
+connection = connectDatabase()
+
+
+urlConsistoires = "http://www.consistoire.org/getJson?f=_consistoire"
+responseConsistoires = requests.get(urlConsistoires)
+
+
 # Parcourir et structurer le fichier JSON
 rows = []
-connection = connectDatabase()
-parcourir_json(response.json(), connection)
-countsByVille = countSynasByVille(rows)
+parcourirJsonConsistoire(responseConsistoires.json(), connection)
 for row in rows:
-    insertData(connection, row, countsByVille)
-updateConsistoireForSynas(connection)
-# excel_file_path = 'questions.xlsx'
+    insertDataConsistoires(connection, row)
 
-# # Load the Excel file
-# xls = pd.ExcelFile(excel_file_path)
 
-# # Dictionary to store each worksheet as a key with data as values
-# data = {}
+# Lire le fichier JSON
+urlCommunautes = "http://www.consistoire.org/getJson?f=_communaute"
+responseCommunautes = requests.get(urlCommunautes)
+# Parcourir et structurer le fichier JSON
+rows = []
+parcourirJsonCommunautes(responseCommunautes.json(), connection)
 
-# Iterate through each sheet in the Excel file
-# for sheet_name in xls.sheet_names:
-#     # Read data from the sheet
-#     sheet_data = pd.read_excel(excel_file_path, sheet_name=sheet_name)
+countsByVille = countSynasByVille(rows)
+rowsConsistoire = []
+new_dict = {}
+# for row in rows:
+#     insertDataContact(connection, row, countsByVille)
+# updateConsistoireForSynas(connection)
+updateContactSynasForConsistoire(connection, new_dict)
 
-# Convert the data to JSON format (as a list of dictionaries)
-# sheet_json = sheet_data.to_dict(orient='records')
-
-# # Store the data in the dictionary
-# data[sheet_name] = sheet_json
-
-# Write the dictionary to a JSON file
-# with open('output.json', 'w') as json_file:
-#     json.dump(data, json_file, indent=4)
