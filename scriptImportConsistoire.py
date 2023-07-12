@@ -376,7 +376,6 @@ def updateConsistoireForSynas(connection):
             updatePostMeta(connection, "Consistoire de ville", "consistoire", syna[0])
 
     for consistoire in consistoires:
-        print(consistoire)
         if findIfSameMetaNameWithSamePostId(connection, syna[0], "consistoire") is None:
             createPostMeta(
                 connection, "Consistoire régionale", "consistoire", consistoire[0]
@@ -559,6 +558,8 @@ def insertDataContact(connection, communaute, countsByVille):
             else:
                 updatePostMeta(connection, meta_value, meta_key, idContactSyna)
         if isDirigeant:
+            if idContactSyna == 4844:
+                print(communaute)
             result = ";".join(
                 [
                     f'i:{i};s:{len(str(value))}:"{value}"'
@@ -570,27 +571,29 @@ def insertDataContact(connection, communaute, countsByVille):
                 "meta_key": "dirigeants",
                 "meta_value": f"a:{len(arrayIdsMembers)}:{{{result}}}",
             }
-            idSyna = findIdSynaByCpAndAdress(connection, communaute)
-            if idSyna:
-                if (
-                    findIfSameMetaNameWithSamePostId(
-                        connection, idSyna, metaDirigeants["meta_key"]
-                    )
-                    is None
-                ):
-                    createPostMeta(
-                        connection,
-                        metaDirigeants["meta_value"],
-                        metaDirigeants["meta_key"],
-                        idSyna,
-                    )
-                else:
-                    updatePostMeta(
-                        connection,
-                        metaDirigeants["meta_value"],
-                        metaDirigeants["meta_key"],
-                        idSyna,
-                    )
+            # if not communaute['adresse']:
+
+            # idSyna = findIdSynaByCpAndAdress(connection, communaute)
+            # if idSyna:
+            if (
+                findIfSameMetaNameWithSamePostId(
+                    connection, idContactSyna, metaDirigeants["meta_key"]
+                )
+                is None
+            ):
+                createPostMeta(
+                    connection,
+                    metaDirigeants["meta_value"],
+                    metaDirigeants["meta_key"],
+                    idContactSyna,
+                )
+            else:
+                updatePostMeta(
+                    connection,
+                    metaDirigeants["meta_value"],
+                    metaDirigeants["meta_key"],
+                    idContactSyna,
+                )
     except Exception as e:
         print(f"Error inserting data: {str(e)}")
 
