@@ -6,6 +6,7 @@ import mysql.connector
 from mysql.connector import Error
 import time
 
+
 def has_class_but_no_id(tag):
     return tag.has_attr("class") and not tag.has_attr("id")
 
@@ -54,7 +55,8 @@ def parcourirJsonCommunautes(data, connection, indentation=0, parent_key=""):
         }
 
         obj.update(detail)
-        rows.append(obj)
+        rowsCommunautes.append(obj)
+
 
 def parcourirJsonConsistoire(data, connection, indentation=0, parent_key=""):
     if isinstance(data, list):
@@ -78,9 +80,9 @@ def parcourirJsonConsistoire(data, connection, indentation=0, parent_key=""):
                 else:
                     tags[class_attr] = 0
                     detail[tag["class"][0]] = str(tag.text)
-            
-        soup = BeautifulSoup(data["detail"], 'html.parser')
-        divs = soup.find_all('div')
+
+        soup = BeautifulSoup(data["detail"], "html.parser")
+        divs = soup.find_all("div")
         last_span_end = data["detail"].find(str(divs[-1])) + len(str(divs[-1]))
         text_after_last_span = data["detail"][last_span_end:].strip()
         obj = {
@@ -100,33 +102,33 @@ def parcourirJsonConsistoire(data, connection, indentation=0, parent_key=""):
         }
 
         obj.update(detail)
-        rows.append(obj)
+        rowsConsistoires.append(obj)
 
 
 def connectDatabase():
     try:
         local = {
-            'host': "127.0.0.1",
-            'database': "local",
-            'user': "samuel",
-            'password': "samuel",
-            'port': 10005
+            "host": "127.0.0.1",
+            "database": "local",
+            "user": "samuel",
+            "password": "samuel",
+            "port": 10005,
         }
 
         dev = {
-            'host': "localhost",
-            'database': "consistoirefr",
-            'user': "wp_brrvv",
-            'password': "64nL@_X5B@1*d?H&",
-            'port': 3306
+            "host": "localhost",
+            "database": "consistoirefr",
+            "user": "wp_brrvv",
+            "password": "64nL@_X5B@1*d?H&",
+            "port": 3306,
         }
 
         connection = mysql.connector.connect(
-            host= local['host'],
-            database=local['database'],
-            user=local['user'],
-            password=local['password'],
-            port=local['port']
+            host=local["host"],
+            database=local["database"],
+            user=local["user"],
+            password=local["password"],
+            port=local["port"],
         )
 
         return connection
@@ -134,29 +136,23 @@ def connectDatabase():
         print("Error while connecting to MySQL", error)
 
 
-def findIdPost(connection, name):
+def findIdPostByType(connection, name, type):
     cursor = connection.cursor(buffered=True)
     select = "SELECT id FROM J6e0wfWFh_posts WHERE J6e0wfWFh_posts.post_title = %s AND J6e0wfWFh_posts.post_type = %s "
-    cursor.execute(select, (name, "contact-des-synagogu"))
-    return cursor.fetchone()
-
-
-def findIdPostMembre(connection, name):
-    cursor = connection.cursor(buffered=True)
-    select = "SELECT id FROM J6e0wfWFh_posts WHERE J6e0wfWFh_posts.post_title = %s AND J6e0wfWFh_posts.post_type = %s "
-    cursor.execute(select, (name, "dirigeants"))
+    cursor.execute(select, (name, type))
     result = cursor.fetchone()
     return result[0] if result is not None else None
+
 
 def findIfSameMetaNameWithSamePostId(connection, postId, metaname):
     cursor = connection.cursor(buffered=True)
     select = "SELECT meta_id FROM J6e0wfWFh_postmeta WHERE J6e0wfWFh_postmeta.post_id = %s AND J6e0wfWFh_postmeta.meta_key = %s "
-    cursor.execute(select, (postId , metaname))
+    cursor.execute(select, (postId, metaname))
     result = cursor.fetchone()
     return result[0] if result is not None else None
 
 
-def findCommunaute(connection, id):
+def findPostById(connection, id):
     cursor = connection.cursor(buffered=True)
     select = "SELECT post_title FROM J6e0wfWFh_posts WHERE J6e0wfWFh_posts.ID = %s"
     cursor.execute(select, (id,))
@@ -170,25 +166,19 @@ def findIdSynaByCpAndAdress(connection, row):
     result = cursor.fetchone()
     return result[0] if result is not None else None
 
+
 def selectEveryConsistoires(connection):
     cursor = connection.cursor(buffered=True)
     select = "SELECT id FROM J6e0wfWFh_posts INNER JOIN J6e0wfWFh_postmeta ON J6e0wfWFh_postmeta.post_id = J6e0wfWFh_posts.id WHERE J6e0wfWFh_posts.post_type = %s AND J6e0wfWFh_postmeta.meta_value LIKE %s"
-    cursor.execute(select, ("synagogue","Consistoire régional"))
+    cursor.execute(select, ("synagogue", "Consistoire régional"))
     result = cursor.fetchall()
     return result
 
 
-def findIdSynaByVille(connection, name):
-    cursor = connection.cursor(buffered=True)
-    select = "SELECT id FROM J6e0wfWFh_posts WHERE J6e0wfWFh_posts.post_title = %s AND J6e0wfWFh_posts.post_type = %s "
-    cursor.execute(select, (name, "synagogue"))
-    result = cursor.fetchone()
-    return result[0] if result is not None else None
-
 def findIdConsistoireRégionalByVille(connection, name):
     cursor = connection.cursor(buffered=True)
     select = "SELECT id FROM J6e0wfWFh_posts INNER JOIN J6e0wfWFh_postmeta ON J6e0wfWFh_postmeta.post_id = J6e0wfWFh_posts.id WHERE J6e0wfWFh_posts.post_title = %s AND J6e0wfWFh_posts.post_type = %s AND J6e0wfWFh_postmeta.meta_value LIKE %s"
-    cursor.execute(select, (name, "synagogue","%Consistoire régional%"))
+    cursor.execute(select, (name, "synagogue", "%Consistoire régional%"))
     result = cursor.fetchone()
     return result[0] if result is not None else None
 
@@ -199,12 +189,14 @@ def getLastIdAddOne(connection):
     cursor.execute(select)
     return cursor.fetchone()[0] + 1
 
+
 def selectEverySynas(connection):
     cursor = connection.cursor(buffered=True)
     select = "SELECT id FROM J6e0wfWFh_posts INNER JOIN J6e0wfWFh_postmeta ON J6e0wfWFh_postmeta.post_id = J6e0wfWFh_posts.id WHERE J6e0wfWFh_posts.post_type = %s AND J6e0wfWFh_postmeta.meta_value NOT LIKE %s"
-    cursor.execute(select, ("synagogue","Consistoire régional"))
+    cursor.execute(select, ("synagogue", "Consistoire régional"))
     result = cursor.fetchall()
     return result
+
 
 def createAndReturnIdMember(connection, name, actualTime, text):
     queryMembrePost = "INSERT INTO J6e0wfWFh_posts (post_author, post_date, post_date_gmt, post_content, post_title, post_excerpt, post_name, to_ping, pinged, post_modified, post_modified_gmt, post_content_filtered, guid, post_type) VALUES (%(post_author)s, %(post_date)s, %(post_date_gmt)s, %(post_content)s, %(post_title)s, %(post_excerpt)s, %(post_name)s, %(to_ping)s, %(pinged)s, %(post_modified)s, %(post_modified_gmt)s, %(post_content_filtered)s, %(guid)s, %(post_type)s)"
@@ -241,6 +233,7 @@ def createPostMeta(connection, entry, meta_key, id):
     )
     connection.commit()
 
+
 def updatePostMeta(connection, entry, meta_key, id):
     cursor = connection.cursor(buffered=True)
     query_postmetamember = "UPDATE J6e0wfWFh_postmeta SET meta_value = %s  WHERE post_id = %s AND meta_key = %s"
@@ -251,18 +244,23 @@ def updatePostMeta(connection, entry, meta_key, id):
     )
     connection.commit()
 
+
 def createOrUpdatePostMeta(connection, entry, meta_key, id):
     if findIfSameMetaNameWithSamePostId(connection, id, meta_key) is None:
         createPostMeta(connection, entry, meta_key, id)
     else:
         updatePostMeta(connection, entry, meta_key, id)
 
-def findcontactSynaAndReturnId(connection, actualTime):
+
+def findcontactSynaAndReturnId(connection):
     cursor = connection.cursor(buffered=True)
     select = "SELECT id FROM J6e0wfWFh_posts INNER JOIN J6e0wfWFh_postmeta ON J6e0wfWFh_postmeta.post_id = J6e0wfWFh_posts.id WHERE J6e0wfWFh_postmeta.meta_value LIKE %s AND J6e0wfWFh_posts.post_type = %s "
     cursor.execute(
         select,
-        ("%" + row["adresse"] + " " + row["code_postal"] + "%", "contact-des-synagogu"),
+        (
+            "%" + communaute["adresse"] + " " + communaute["code_postal"] + "%",
+            "contact-des-synagogu",
+        ),
     )
     result = cursor.fetchone()
     return result[0] if result is not None else None
@@ -276,11 +274,11 @@ def createPostContactSynaAndReturnId(connection, actualTime):
         "post_date": actualTime,
         "post_date_gmt": actualTime,
         "post_content": "",
-        "post_title": row["nom"],
+        "post_title": communaute["nom"],
         "post_excerpt": "",
         "to_ping": "",
         "pinged": "",
-        "post_name": row["nom"].lower().replace(" ", "-"),
+        "post_name": communaute["nom"].lower().replace(" ", "-"),
         "post_modified": actualTime,
         "post_modified_gmt": actualTime,
         "post_content_filtered": "",
@@ -293,6 +291,7 @@ def createPostContactSynaAndReturnId(connection, actualTime):
     connection.commit()
     return cursor.lastrowid
 
+
 def createSynaAndReturnId(connection, actualTime):
     queryContactSynaPost = "INSERT INTO J6e0wfWFh_posts (post_author, post_date, post_date_gmt, post_content, post_title, post_excerpt, post_name, to_ping, pinged, post_modified, post_modified_gmt, post_content_filtered, guid, post_type) VALUES (%(post_author)s, %(post_date)s, %(post_date_gmt)s, %(post_content)s, %(post_title)s, %(post_excerpt)s, %(post_name)s, %(to_ping)s, %(pinged)s, %(post_modified)s, %(post_modified_gmt)s, %(post_content_filtered)s, %(guid)s, %(post_type)s)"
     lastId = getLastIdAddOne(connection)
@@ -301,16 +300,15 @@ def createSynaAndReturnId(connection, actualTime):
         "post_date": actualTime,
         "post_date_gmt": actualTime,
         "post_content": "",
-        "post_title": row["nom"],
+        "post_title": consistoire["nom"],
         "post_excerpt": "",
         "to_ping": "",
         "pinged": "",
-        "post_name": row["nom"].lower().replace(" ", "-"),
+        "post_name": consistoire["nom"].lower().replace(" ", "-"),
         "post_modified": actualTime,
         "post_modified_gmt": actualTime,
         "post_content_filtered": "",
-        "guid": "http://consistoire.local/?post_type=synagogues&#038;p="
-        + str(lastId),
+        "guid": "http://consistoire.local/?post_type=synagogues&#038;p=" + str(lastId),
         "post_type": "synagogue",
     }
     cursor = connection.cursor(buffered=True)
@@ -339,7 +337,7 @@ def findIdRegion(id):
         "Bas-rhin",
         "Haut-rhin",
         "Moselle",
-        "Autre"
+        "Autre",
     ]
     return regions[id - 1]
 
@@ -367,84 +365,108 @@ def countSynasByVille(rows):
             counts[ville] = counts.get(ville, 0) + 1
     return counts
 
+
 def updateConsistoireForSynas(connection):
     consistoires = selectEveryConsistoires(connection)
     synas = selectEverySynas(connection)
     for syna in synas:
-        if findIfSameMetaNameWithSamePostId(connection, syna[0], 'consistoire') is None:
-                createPostMeta(connection, 'Consistoire de ville', "consistoire", syna[0])
+        if findIfSameMetaNameWithSamePostId(connection, syna[0], "consistoire") is None:
+            createPostMeta(connection, "Consistoire de ville", "consistoire", syna[0])
         else:
-            updatePostMeta(connection, 'Consistoire de ville', "consistoire", syna[0])
-    
+            updatePostMeta(connection, "Consistoire de ville", "consistoire", syna[0])
+
     for consistoire in consistoires:
         print(consistoire)
-        if findIfSameMetaNameWithSamePostId(connection, syna[0], 'consistoire') is None:
-                createPostMeta(connection, 'Consistoire régionale', "consistoire", consistoire[0])
+        if findIfSameMetaNameWithSamePostId(connection, syna[0], "consistoire") is None:
+            createPostMeta(
+                connection, "Consistoire régionale", "consistoire", consistoire[0]
+            )
         else:
-            updatePostMeta(connection, 'Consistoire régional', "consistoire", consistoire[0])
+            updatePostMeta(
+                connection, "Consistoire régional", "consistoire", consistoire[0]
+            )
+
 
 def updateContactSynasForConsistoire(connection, listVilles):
     listConsistoireById = {
-    1541 : 'CONSISTOIRE DU BAS-RHIN',
-    1505: 'CONSISTOIRE JUIF REGIONAL AUVERGNE RHONE-ALPES',
-    1493: 'CONSISTOIRE REGIONAL DU PAYS DE LA GARONNE',
-    1468: 'NICE - ACIN',
-    1610: 'CONSISTOIRE DE BOURGOGNE FRANCHE COMTÉ - DIJON',
-    1: 'PARIS',
-    1438: 'MARSEILLE'
+        1541: "CONSISTOIRE DU BAS-RHIN",
+        1505: "CONSISTOIRE JUIF REGIONAL AUVERGNE RHONE-ALPES",
+        1493: "CONSISTOIRE REGIONAL DU PAYS DE LA GARONNE",
+        1468: "NICE - ACIN",
+        1610: "CONSISTOIRE DE BOURGOGNE FRANCHE COMTÉ - DIJON",
+        1: "PARIS",
+        1438: "MARSEILLE",
     }
     for consistoire in listVilles:
-        if consistoire != '0':
-            idConsistoire = findIdConsistoireRégionalByVille(connection, listConsistoireById[int(consistoire)])
+        if consistoire != "0":
+            idConsistoire = findIdConsistoireRégionalByVille(
+                connection, listConsistoireById[int(consistoire)]
+            )
             if idConsistoire:
                 result = ";".join(
-                [
-                    f'i:{i};s:{len(str(value))}:"{value}"'
-                    for i, value in enumerate(listVilles[consistoire])
-                ]
+                    [
+                        f'i:{i};s:{len(str(value))}:"{value}"'
+                        for i, value in enumerate(listVilles[consistoire])
+                    ]
                 )
-                result+=';'
+                result += ";"
                 metaDirigeants = {
                     "meta_key": "contact-des-synagogues-de-la-ville",
                     "meta_value": f"a:{len(listVilles[consistoire])}:{{{result}}}",
                 }
-                if findIfSameMetaNameWithSamePostId(connection, idConsistoire, metaDirigeants["meta_key"]) is None:
-                    createPostMeta(connection, metaDirigeants["meta_value"], metaDirigeants["meta_key"], idConsistoire)
+                if (
+                    findIfSameMetaNameWithSamePostId(
+                        connection, idConsistoire, metaDirigeants["meta_key"]
+                    )
+                    is None
+                ):
+                    createPostMeta(
+                        connection,
+                        metaDirigeants["meta_value"],
+                        metaDirigeants["meta_key"],
+                        idConsistoire,
+                    )
                 else:
-                    updatePostMeta(connection, metaDirigeants["meta_value"], metaDirigeants["meta_key"], idConsistoire)
+                    updatePostMeta(
+                        connection,
+                        metaDirigeants["meta_value"],
+                        metaDirigeants["meta_key"],
+                        idConsistoire,
+                    )
 
 
-def insertDataContact(connection, row, countsByVille):
+def insertDataContact(connection, communaute, countsByVille):
     actualTime = time.strftime("%Y-%m-%d %H:%M:%S")
     multiSynas = False
     # Plusieurs synagogues dans la ville
-    if (countsByVille[row["ville"]]) > 1 or int(row['id_ville_h']) == 13:
-        idContactSyna = findcontactSynaAndReturnId(connection, row)
+    if (countsByVille[communaute["ville"]]) > 1 or int(communaute["id_ville_h"]) == 13:
+        idContactSyna = findcontactSynaAndReturnId(connection)
         if not idContactSyna:
             idContactSyna = createPostContactSynaAndReturnId(connection, actualTime)
 
         multiSynas = True
-
     # 1 syna = 1 ville
     else:
         # Si adrresse et code postal similaire alors on ne rentre pas
-        idContactSyna = findIdSynaByVille(connection, row["ville"].capitalize())
+        idContactSyna = findIdPostByType(
+            connection, communaute["ville"].capitalize(), "synagogue"
+        )
         # la ville correspondante n'est pas trouvé on sort
         if not idContactSyna:
             return
     try:
-        if row['id_consistoire'] not in new_dict:
-            new_dict[row['id_consistoire']] = []
-        new_dict[row['id_consistoire']].append(idContactSyna)    
+        if communaute["id_consistoire"] not in communautesByConsistoire:
+            communautesByConsistoire[communaute["id_consistoire"]] = []
+        communautesByConsistoire[communaute["id_consistoire"]].append(idContactSyna)
         isDirigeant = False
         arrayIdsMembers = []
 
-        for entry in row:
+        for entry in communaute:
             if entry == "id_region":
                 meta_key = "region"
-                meta_value = findIdRegion(int(row[entry]))
+                meta_value = findIdRegion(int(communaute[entry]))
             elif entry == "id_communaute":
-                titleCommunaute = findCommunaute(connection, row[entry])
+                titleCommunaute = findPostById(connection, communaute[entry])
                 if titleCommunaute:
                     meta_key = "nom-complet"
                     meta_value = titleCommunaute[0]
@@ -454,40 +476,40 @@ def insertDataContact(connection, row, countsByVille):
             elif entry == "historique":
                 # meta_key = "description-principale" if multiSynas else "detail"
                 meta_key = "description-principale"
-                meta_value = row[entry]
+                meta_value = communaute[entry]
             elif entry == "adresse":
                 meta_key = "adresse-complete"
-                adresseComplete = row[entry] + " " + row["code_postal"]
+                adresseComplete = communaute[entry] + " " + communaute["code_postal"]
                 meta_value = adresseComplete
             elif entry == "tel":
                 meta_key = "numero-de-telephone"
-                meta_value = row[entry]
+                meta_value = communaute[entry]
             elif entry == "nom":
                 meta_key = "nom-complet"
-                meta_value = row[entry]
+                meta_value = communaute[entry]
             elif entry in ["id_consistoire", "id_ville_h", "code_postal"]:
                 continue
             elif "nom-prenom" in entry:
                 continue
                 meta_key = "nom-complet-"
-                meta_value = row[entry]
+                meta_value = communaute[entry]
             elif entry == "ville":
                 meta_key = "ville"
-                if int(row['id_ville_h']) == 13:
+                if int(communaute["id_ville_h"]) == 13:
                     meta_value = "Paris"
                 else:
-                    meta_value = row[entry].capitalize()
+                    meta_value = communaute[entry].capitalize()
             elif "fonction" in entry:
                 isDirigeant = True
                 number = re.findall(r"\d+", entry)
                 number = "" if not number else int(number[0])
-                text = row["nom-prenom" + str(number)].lower()
+                text = communaute["nom-prenom" + str(number)].lower()
                 if "," in text:
                     # pattern = re.compile(r"\b[a-zA-ZÀ-ÿ\s\.\-]+(?=:)", re.UNICODE)
                     # names = pattern.findall(text)
                     names = text.split(", ")
                     for name in names:
-                        idPostMembre = findIdPostMembre(connection, name)
+                        idPostMembre = findIdPostByType(connection, name, "dirigeants")
                         if not idPostMembre:
                             lastRowId = createAndReturnIdMember(
                                 connection, name, actualTime, name
@@ -496,31 +518,43 @@ def insertDataContact(connection, row, countsByVille):
                         else:
                             arrayIdsMembers.append(idPostMembre)
                             createPostMeta(
-                                connection, row[entry], "status", idPostMembre
+                                connection, communaute[entry], "status", idPostMembre
                             )
                 else:
                     if len(text) > 200:
                         text = text[:200]
-                    idPostMembre = findIdPostMembre(connection, text)
+                    idPostMembre = findIdPostByType(connection, text, "dirigeants")
                     if not idPostMembre:
                         idPostMembre = createAndReturnIdMember(
                             connection, text, actualTime, text
                         )
                         arrayIdsMembers.append(idPostMembre)
-                    #     # idPostMembre = findIdPostMembre(connection, row['nom-prenom'+str(number)])
+                    #     # idPostMembre = findIdPostByType(connection, communaute['nom-prenom'+str(number)])
                     else:
                         arrayIdsMembers.append(idPostMembre)
 
-                    # createPostMeta(connection, row[entry], "status", idPostMembre)
-                    if findIfSameMetaNameWithSamePostId(connection, idContactSyna, meta_key) is None:
-                        createPostMeta(connection, row[entry], "status", idPostMembre)
+                    # createPostMeta(connection, communaute[entry], "status", idPostMembre)
+                    if (
+                        findIfSameMetaNameWithSamePostId(
+                            connection, idContactSyna, meta_key
+                        )
+                        is None
+                    ):
+                        createPostMeta(
+                            connection, communaute[entry], "status", idPostMembre
+                        )
                     else:
-                        updatePostMeta(connection, row[entry], "status", idPostMembre)
+                        updatePostMeta(
+                            connection, communaute[entry], "status", idPostMembre
+                        )
                     continue
             else:
                 meta_key = re.sub(r"\d+", "", entry)
-                meta_value = transformValue(row[entry])
-            if findIfSameMetaNameWithSamePostId(connection, idContactSyna, meta_key) is None:
+                meta_value = transformValue(communaute[entry])
+            if (
+                findIfSameMetaNameWithSamePostId(connection, idContactSyna, meta_key)
+                is None
+            ):
                 createPostMeta(connection, meta_value, meta_key, idContactSyna)
             else:
                 updatePostMeta(connection, meta_value, meta_key, idContactSyna)
@@ -531,59 +565,75 @@ def insertDataContact(connection, row, countsByVille):
                     for i, value in enumerate(arrayIdsMembers)
                 ]
             )
-            result+=';'
+            result += ";"
             metaDirigeants = {
                 "meta_key": "dirigeants",
                 "meta_value": f"a:{len(arrayIdsMembers)}:{{{result}}}",
             }
-            idSyna = findIdSynaByCpAndAdress(connection, row)
+            idSyna = findIdSynaByCpAndAdress(connection, communaute)
             if idSyna:
-                if findIfSameMetaNameWithSamePostId(connection, idSyna, metaDirigeants["meta_key"]) is None:
-                    createPostMeta(connection, metaDirigeants["meta_value"], metaDirigeants["meta_key"], idSyna)
+                if (
+                    findIfSameMetaNameWithSamePostId(
+                        connection, idSyna, metaDirigeants["meta_key"]
+                    )
+                    is None
+                ):
+                    createPostMeta(
+                        connection,
+                        metaDirigeants["meta_value"],
+                        metaDirigeants["meta_key"],
+                        idSyna,
+                    )
                 else:
-                    updatePostMeta(connection, metaDirigeants["meta_value"], metaDirigeants["meta_key"], idSyna)
+                    updatePostMeta(
+                        connection,
+                        metaDirigeants["meta_value"],
+                        metaDirigeants["meta_key"],
+                        idSyna,
+                    )
     except Exception as e:
         print(f"Error inserting data: {str(e)}")
 
-def insertDataConsistoires(connection, row):
+
+def insertDataConsistoires(connection, consistoire):
     actualTime = time.strftime("%Y-%m-%d %H:%M:%S")
-    idSyna = findIdConsistoireRégionalByVille(connection, row['nom'])
+    idSyna = findIdConsistoireRégionalByVille(connection, consistoire["nom"])
     if not idSyna:
         idSyna = createSynaAndReturnId(connection, actualTime)
-        createPostMeta(connection, 'Consistoire régional', 'consistoire', idSyna)
-    
+        createPostMeta(connection, "Consistoire régional", "consistoire", idSyna)
+
     try:
-        updatePostMeta(connection, 'Consistoire régional', 'consistoire', idSyna)
+        updatePostMeta(connection, "Consistoire régional", "consistoire", idSyna)
         isDirigeant = False
         arrayIdsMembers = []
 
-        for entry in row:
+        for entry in consistoire:
             if entry == "id_region":
                 meta_key = "region"
-                meta_value = findIdRegion(int(row[entry]))
+                meta_value = findIdRegion(int(consistoire[entry]))
             elif entry == "historique":
                 # meta_key = "description-principale" if multiSynas else "detail"
                 meta_key = "description-principale"
-                meta_value = row[entry]
+                meta_value = consistoire[entry]
             elif entry == "adresse":
                 meta_key = "adresse-complete"
-                adresseComplete = row[entry] + " " + row["code_postal"]
+                adresseComplete = consistoire[entry] + " " + consistoire["code_postal"]
                 meta_value = adresseComplete
             elif entry == "tel":
                 meta_key = "numero-de-telephone"
-                meta_value = row[entry]
+                meta_value = consistoire[entry]
             elif entry == "nom":
                 meta_key = "nom-complet"
-                meta_value = row[entry]
+                meta_value = consistoire[entry]
             elif entry in ["id_consistoire", "id_ville_h", "code_postal"]:
                 continue
             elif entry == "ville":
                 meta_key = "ville"
-                meta_value = row[entry].capitalize()
+                meta_value = consistoire[entry].capitalize()
             elif "membres" in entry:
-                text = row[entry]
+                text = consistoire[entry]
                 isDirigeant = True
-                roles_and_names = text.split('<br>')
+                roles_and_names = text.split("<br>")
 
                 # Création d'un dictionnaire pour stocker les rôles et les noms
                 roles_and_names_dict = {}
@@ -592,17 +642,17 @@ def insertDataConsistoires(connection, row):
                     # Séparation du rôle et du nom
                     if not role_and_name:
                         continue
-                    role, names = role_and_name.split(':')
+                    role, names = role_and_name.split(":")
                     # Suppression des espaces blancs au début et à la fin
                     role = role.strip()
                     # Conversion des noms en une liste de noms, en supprimant les espaces blancs au début et à la fin de chaque nom
-                    names = [name.strip() for name in names.split(',')]
+                    names = [name.strip() for name in names.split(",")]
                     # Ajout du rôle et des noms au dictionnaire
                     roles_and_names_dict[role] = names
 
                 for role, names in roles_and_names_dict.items():
                     for name in names:
-                        idPostMembre = findIdPostMembre(connection, name)
+                        idPostMembre = findIdPostByType(connection, name, "dirigeants")
                         if not idPostMembre:
                             lastRowId = createAndReturnIdMember(
                                 connection, name, actualTime, name
@@ -610,13 +660,11 @@ def insertDataConsistoires(connection, row):
                             arrayIdsMembers.append(lastRowId)
                         else:
                             arrayIdsMembers.append(idPostMembre)
-                            createPostMeta(
-                                connection, role, "status", idPostMembre
-                            )
-            
+                            createPostMeta(connection, role, "status", idPostMembre)
+
             else:
                 meta_key = re.sub(r"\d+", "", entry)
-                meta_value = transformValue(row[entry])
+                meta_value = transformValue(consistoire[entry])
             if findIfSameMetaNameWithSamePostId(connection, idSyna, meta_key) is None:
                 createPostMeta(connection, meta_value, meta_key, idSyna)
             else:
@@ -628,15 +676,30 @@ def insertDataConsistoires(connection, row):
                     for i, value in enumerate(arrayIdsMembers)
                 ]
             )
-            result+=';'
+            result += ";"
             metaDirigeants = {
                 "meta_key": "dirigeants",
                 "meta_value": f"a:{len(arrayIdsMembers)}:{{{result}}}",
             }
-            if findIfSameMetaNameWithSamePostId(connection, idSyna, metaDirigeants["meta_key"]) is None:
-                createPostMeta(connection, metaDirigeants["meta_value"], metaDirigeants["meta_key"], idSyna)
+            if (
+                findIfSameMetaNameWithSamePostId(
+                    connection, idSyna, metaDirigeants["meta_key"]
+                )
+                is None
+            ):
+                createPostMeta(
+                    connection,
+                    metaDirigeants["meta_value"],
+                    metaDirigeants["meta_key"],
+                    idSyna,
+                )
             else:
-                updatePostMeta(connection, metaDirigeants["meta_value"], metaDirigeants["meta_key"], idSyna)
+                updatePostMeta(
+                    connection,
+                    metaDirigeants["meta_value"],
+                    metaDirigeants["meta_key"],
+                    idSyna,
+                )
     except Exception as e:
         print(f"Error inserting data: {str(e)}")
 
@@ -649,24 +712,22 @@ responseConsistoires = requests.get(urlConsistoires)
 
 
 # Parcourir et structurer le fichier JSON
-rows = []
+rowsConsistoires = []
 parcourirJsonConsistoire(responseConsistoires.json(), connection)
-for row in rows:
-    insertDataConsistoires(connection, row)
+for consistoire in rowsConsistoires:
+    insertDataConsistoires(connection, consistoire)
 
 
 # Lire le fichier JSON
 urlCommunautes = "http://www.consistoire.org/getJson?f=_communaute"
 responseCommunautes = requests.get(urlCommunautes)
 # Parcourir et structurer le fichier JSON
-rows = []
+rowsCommunautes = []
 parcourirJsonCommunautes(responseCommunautes.json(), connection)
 
-countsByVille = countSynasByVille(rows)
-rowsConsistoire = []
-new_dict = {}
-for row in rows:
-    insertDataContact(connection, row, countsByVille)
+countsByVille = countSynasByVille(rowsCommunautes)
+communautesByConsistoire = {}
+for communaute in rowsCommunautes:
+    insertDataContact(connection, communaute, countsByVille)
 updateConsistoireForSynas(connection)
-updateContactSynasForConsistoire(connection, new_dict)
-
+updateContactSynasForConsistoire(connection, communautesByConsistoire)
