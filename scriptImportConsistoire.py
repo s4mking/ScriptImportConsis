@@ -124,11 +124,11 @@ def connectDatabase():
         }
 
         connection = mysql.connector.connect(
-            host=local["host"],
-            database=local["database"],
-            user=local["user"],
-            password=local["password"],
-            port=local["port"],
+            host=dev["host"],
+            database=dev["database"],
+            user=dev["user"],
+            password=dev["password"],
+            port=dev["port"],
         )
 
         return connection
@@ -732,5 +732,6 @@ countsByVille = countSynasByVille(rowsCommunautes)
 communautesByConsistoire = {}
 for communaute in rowsCommunautes:
     insertDataContact(connection, communaute, countsByVille)
+
 updateConsistoireForSynas(connection)
 updateContactSynasForConsistoire(connection, communautesByConsistoire)
