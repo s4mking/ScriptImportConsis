@@ -274,11 +274,11 @@ def createPostContactSynaAndReturnId(connection, actualTime):
         "post_date": actualTime,
         "post_date_gmt": actualTime,
         "post_content": "",
-        "post_title": communaute["nom"],
+        "post_title": communaute["nom"] if communaute["nom"] else 'synagogue',
         "post_excerpt": "",
         "to_ping": "",
         "pinged": "",
-        "post_name": communaute["nom"].lower().replace(" ", "-"),
+        "post_name": communaute["nom"].lower().replace(" ", "-") if communaute["nom"] else 'synagogue',
         "post_modified": actualTime,
         "post_modified_gmt": actualTime,
         "post_content_filtered": "",
@@ -446,7 +446,7 @@ def insertDataContact(connection, communaute, countsByVille):
         multiSynas = True
     # 1 syna = 1 ville
     else:
-        # Si adrresse et code postal similaire alors on ne rentre pas
+        # Si adresse et code postal similaire alors on ne rentre pas
         idContactSyna = findIdPostByType(
             connection, communaute["ville"].capitalize(), "synagogue"
         )
@@ -485,7 +485,7 @@ def insertDataContact(connection, communaute, countsByVille):
                 meta_value = communaute[entry]
             elif entry == "nom":
                 meta_key = "nom-complet"
-                meta_value = communaute[entry]
+                meta_value = communaute[entry] if communaute[entry] else 'synagogue'
             elif entry in ["id_consistoire", "id_ville_h", "code_postal"]:
                 continue
             elif "nom-prenom" in entry:
