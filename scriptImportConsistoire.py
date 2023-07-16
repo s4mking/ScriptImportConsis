@@ -124,11 +124,11 @@ def connectDatabase():
         }
 
         connection = mysql.connector.connect(
-            host=dev["host"],
-            database=dev["database"],
-            user=dev["user"],
-            password=dev["password"],
-            port=dev["port"],
+            host=local["host"],
+            database=local["database"],
+            user=local["user"],
+            password=local["password"],
+            port=local["port"],
         )
 
         return connection
@@ -437,12 +437,15 @@ def updateContactSynasForConsistoire(connection, listVilles):
 def insertDataContact(connection, communaute, countsByVille):
     actualTime = time.strftime("%Y-%m-%d %H:%M:%S")
     multiSynas = False
+    
+    
     # Plusieurs synagogues dans la ville
     if (countsByVille[communaute["ville"]]) > 1 or int(communaute["id_ville_h"]) == 13:
         idContactSyna = findcontactSynaAndReturnId(connection)
         if not idContactSyna:
             idContactSyna = createPostContactSynaAndReturnId(connection, actualTime)
-
+        if communaute['ville'] == 'PANTIN':
+            print(idContactSyna)
         multiSynas = True
     # 1 syna = 1 ville
     else:
@@ -457,6 +460,12 @@ def insertDataContact(connection, communaute, countsByVille):
         if communaute["id_consistoire"] not in communautesByConsistoire:
             communautesByConsistoire[communaute["id_consistoire"]] = []
         communautesByConsistoire[communaute["id_consistoire"]].append(idContactSyna)
+
+        if (countsByVille[communaute["ville"]]) > 1 and int(communaute["id_ville_h"]) == 13:
+            if communaute["ville"] not in communautesByVillesParis:
+                communautesByVillesParis[communaute["ville"]] = []
+            communautesByVillesParis[communaute["ville"]].append(idContactSyna)
+
         isDirigeant = False
         arrayIdsMembers = []
 
@@ -533,18 +542,18 @@ def insertDataContact(connection, communaute, countsByVille):
                         arrayIdsMembers.append(idPostMembre)
 
                     # createPostMeta(connection, communaute[entry], "status", idPostMembre)
-                    if (
-                        findIfSameMetaNameWithSamePostId(
-                            connection, idContactSyna, meta_key
+                    idMeta = findIfSameMetaNameWithSamePostId(
+                            connection, idPostMembre, meta_key
                         )
-                        is None
+                    if (
+                        idMeta is None
                     ):
                         createPostMeta(
                             connection, communaute[entry], "status", idPostMembre
                         )
                     else:
                         updatePostMeta(
-                            connection, communaute[entry], "status", idPostMembre
+                            connection, communaute[entry], "status", idMeta
                         )
                     continue
             else:
@@ -558,8 +567,6 @@ def insertDataContact(connection, communaute, countsByVille):
             else:
                 updatePostMeta(connection, meta_value, meta_key, idContactSyna)
         if isDirigeant:
-            if idContactSyna == 4844:
-                print(communaute)
             result = ";".join(
                 [
                     f'i:{i};s:{len(str(value))}:"{value}"'
@@ -706,6 +713,54 @@ def insertDataConsistoires(connection, consistoire):
     except Exception as e:
         print(f"Error inserting data: {str(e)}")
 
+def updateParisSynasTowns(connection, communaute, countsByVille):
+  if (countsByVille[communaute["ville"]]) > 1 and int(communaute["id_ville_h"]) == 13:
+        #ajout de toutes les communautes dans contact-des-synas
+        print('toto')
+  elif (countsByVille[communaute["ville"]]) == 1 and int(communaute["id_ville_h"]) == 13:
+    #Modification de la ville
+    print(communaute['ville'])
+
+def updateParisSynasTownsMulti(connection, communautesByVillesParis):
+    for communaute in communautesByVillesParis:
+        if communaute != 'PARIS':
+            idSyna = findIdPostByType(
+                    connection, communaute,"synagogue"
+                )
+            if (
+                idSyna is not None
+            ):
+                result = ";".join(
+                    [
+                        f'i:{i};s:{len(str(value))}:"{value}"'
+                        for i, value in enumerate(communautesByVillesParis[communaute])
+                    ]
+                )
+                result += ";"
+                metaDirigeants = {
+                    "meta_key": "contact-des-synagogues-de-la-ville",
+                    "meta_value": f"a:{len(communautesByVillesParis[communaute])}:{{{result}}}",
+                }
+                if (
+                    findIfSameMetaNameWithSamePostId(
+                        connection, idSyna, metaDirigeants["meta_key"]
+                    )
+                    is None
+                ):
+                    createPostMeta(
+                        connection,
+                        metaDirigeants["meta_value"],
+                        metaDirigeants["meta_key"],
+                        idSyna,
+                    )
+                else:
+                    updatePostMeta(
+                        connection,
+                        metaDirigeants["meta_value"],
+                        metaDirigeants["meta_key"],
+                        idSyna,
+                    )
+            
 
 connection = connectDatabase()
 
@@ -730,8 +785,13 @@ parcourirJsonCommunautes(responseCommunautes.json(), connection)
 
 countsByVille = countSynasByVille(rowsCommunautes)
 communautesByConsistoire = {}
+communautesByVillesParis = {}
 for communaute in rowsCommunautes:
     insertDataContact(connection, communaute, countsByVille)
 
 updateConsistoireForSynas(connection)
 updateContactSynasForConsistoire(connection, communautesByConsistoire)
+print(communautesByVillesParis)
+updateParisSynasTownsMulti(connection, communautesByVillesParis)
+# for communaute in rowsCommunautes:
+#     updateParisSynasTowns(connection, communaute, countsByVille)
