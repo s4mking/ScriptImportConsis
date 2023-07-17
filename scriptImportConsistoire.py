@@ -396,9 +396,12 @@ def updateContactSynasForConsistoire(connection, listVilles):
         1: "PARIS",
         1438: "MARSEILLE",
     }
+    print(listVilles)
     for consistoire in listVilles:
         if consistoire != "0":
+
             print(listConsistoireById[int(consistoire)])
+           
             idConsistoire = findIdConsistoireRégionalByVille(
                 connection, listConsistoireById[int(consistoire)]
             )
