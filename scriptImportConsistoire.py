@@ -397,12 +397,9 @@ def updateContactSynasForConsistoire(connection, listVilles):
         1438: "MARSEILLE",
         1558: "CONSISTOIRE REGIONAL DE LA MOSELLE"
     }
-    print(listVilles)
     for consistoire in listVilles:
         if consistoire != "0":
 
-            print(listConsistoireById[int(consistoire)])
-           
             idConsistoire = findIdConsistoireRégionalByVille(
                 connection, listConsistoireById[int(consistoire)]
             )
@@ -715,14 +712,6 @@ def insertDataConsistoires(connection, consistoire):
     except Exception as e:
         print(f"Error inserting data: {str(e)}")
 
-def updateParisSynasTowns(connection, communaute, countsByVille):
-  if (countsByVille[communaute["ville"]]) > 1 and int(communaute["id_ville_h"]) == 13:
-        #ajout de toutes les communautes dans contact-des-synas
-        print('toto')
-  elif (countsByVille[communaute["ville"]]) == 1 and int(communaute["id_ville_h"]) == 13:
-    #Modification de la ville
-    print(communaute['ville'])
-
 def updateParisSynasTownsMulti(connection, communautesByVillesParis):
     for communaute in communautesByVillesParis:
         if communaute != 'PARIS':
@@ -793,7 +782,4 @@ for communaute in rowsCommunautes:
 
 updateConsistoireForSynas(connection)
 updateContactSynasForConsistoire(connection, communautesByConsistoire)
-print(communautesByVillesParis)
 updateParisSynasTownsMulti(connection, communautesByVillesParis)
-# for communaute in rowsCommunautes:
-#     updateParisSynasTowns(connection, communaute, countsByVille)
