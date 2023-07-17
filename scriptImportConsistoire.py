@@ -398,6 +398,7 @@ def updateContactSynasForConsistoire(connection, listVilles):
     }
     for consistoire in listVilles:
         if consistoire != "0":
+            print(listConsistoireById[int(consistoire)])
             idConsistoire = findIdConsistoireRégionalByVille(
                 connection, listConsistoireById[int(consistoire)]
             )
@@ -445,9 +446,8 @@ def insertDataContact(connection, communaute, countsByVille):
             idContactSyna = createPostContactSynaAndReturnId(connection, actualTime)
         multiSynas = True
     # 1 syna = 1 ville
-    else:
+    else:        
         # Si adresse et code postal similaire alors on ne rentre pas
-        print('totot')
         idContactSyna = findIdPostByType(
             connection, communaute["ville"].capitalize(), "synagogue"
         )
