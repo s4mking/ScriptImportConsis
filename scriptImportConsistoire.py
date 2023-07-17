@@ -395,6 +395,7 @@ def updateContactSynasForConsistoire(connection, listVilles):
         1610: "CONSISTOIRE DE BOURGOGNE FRANCHE COMTÉ - DIJON",
         1: "PARIS",
         1438: "MARSEILLE",
+        1558: "CONSISTOIRE REGIONAL DE LA MOSELLE"
     }
     print(listVilles)
     for consistoire in listVilles:
