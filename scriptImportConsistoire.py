@@ -124,11 +124,11 @@ def connectDatabase():
         }
 
         connection = mysql.connector.connect(
-            host=local["host"],
-            database=local["database"],
-            user=local["user"],
-            password=local["password"],
-            port=local["port"],
+            host=dev["host"],
+            database=dev["database"],
+            user=dev["user"],
+            password=dev["password"],
+            port=dev["port"],
         )
 
         return connection
@@ -438,18 +438,16 @@ def insertDataContact(connection, communaute, countsByVille):
     actualTime = time.strftime("%Y-%m-%d %H:%M:%S")
     multiSynas = False
     
-    
     # Plusieurs synagogues dans la ville
-    if (countsByVille[communaute["ville"]]) > 1 or int(communaute["id_ville_h"]) == 13:
+    if (countsByVille[communaute["ville"]]) > 1:
         idContactSyna = findcontactSynaAndReturnId(connection)
         if not idContactSyna:
             idContactSyna = createPostContactSynaAndReturnId(connection, actualTime)
-        if communaute['ville'] == 'PANTIN':
-            print(idContactSyna)
         multiSynas = True
     # 1 syna = 1 ville
     else:
         # Si adresse et code postal similaire alors on ne rentre pas
+        print('totot')
         idContactSyna = findIdPostByType(
             connection, communaute["ville"].capitalize(), "synagogue"
         )
