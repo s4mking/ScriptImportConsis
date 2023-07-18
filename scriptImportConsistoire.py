@@ -522,7 +522,7 @@ def insertDataContact(connection, communaute, countsByVille):
                                 connection, name, actualTime, name
                             )
                             createPostMeta(
-                                connection, communaute[entry], "status", idPostMembre
+                                connection, communaute[entry].replace('</div', ''), "status", idPostMembre
                             )
                             
                             arrayIdsMembers.append(idPostMembre)
@@ -558,11 +558,11 @@ def insertDataContact(connection, communaute, countsByVille):
                         idMeta is None
                     ):
                         createPostMeta(
-                            connection, communaute[entry], "status", idPostMembre
+                            connection, communaute[entry].replace('</div', ''), "status", idPostMembre
                         )
                     else:
                         updatePostMeta(
-                            connection, communaute[entry], "status", idMeta
+                            connection, communaute[entry].replace('</div', ''), "status", idMeta
                         )
                     if findIfSameMetaNameWithSamePostId(connection, idPostMembre, "nom-complet-") is None:
                             createPostMeta(connection, text, "nom-complet-", idPostMembre)
@@ -680,7 +680,7 @@ def insertDataConsistoires(connection, consistoire):
                             idPostMembre = createAndReturnIdMember(
                                 connection, name, actualTime, name
                             )
-                            createPostMeta(connection, role, "status", idPostMembre)
+                            createPostMeta(connection, role.replace('</div', ''), "status", idPostMembre)
                             
                             arrayIdsMembers.append(idPostMembre)
                         else:
