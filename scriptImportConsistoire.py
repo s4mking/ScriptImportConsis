@@ -518,15 +518,25 @@ def insertDataContact(connection, communaute, countsByVille):
                     for name in names:
                         idPostMembre = findIdPostByType(connection, name, "dirigeants")
                         if not idPostMembre:
-                            lastRowId = createAndReturnIdMember(
+                            idPostMembre = createAndReturnIdMember(
                                 connection, name, actualTime, name
                             )
-                            arrayIdsMembers.append(lastRowId)
-                        else:
-                            arrayIdsMembers.append(idPostMembre)
                             createPostMeta(
                                 connection, communaute[entry], "status", idPostMembre
                             )
+                            
+                            arrayIdsMembers.append(idPostMembre)
+                            
+                            if findIfSameMetaNameWithSamePostId(connection, idPostMembre, "nom-complet-") is None:
+                                createPostMeta(connection, name, "nom-complet-", idPostMembre)
+                            else:
+                                updatePostMeta(connection, name, "nom-complet-", idPostMembre)
+                        else:
+                            arrayIdsMembers.append(idPostMembre)
+                        if findIfSameMetaNameWithSamePostId(connection, idPostMembre, "nom-complet-") is None:
+                            createPostMeta(connection, name, "nom-complet-", idPostMembre)
+                        else:
+                            updatePostMeta(connection, name, "nom-complet-", idPostMembre)
                 else:
                     if len(text) > 200:
                         text = text[:200]
@@ -554,6 +564,10 @@ def insertDataContact(connection, communaute, countsByVille):
                         updatePostMeta(
                             connection, communaute[entry], "status", idMeta
                         )
+                    if findIfSameMetaNameWithSamePostId(connection, idPostMembre, "nom-complet-") is None:
+                            createPostMeta(connection, text, "nom-complet-", idPostMembre)
+                    else:
+                        updatePostMeta(connection, text, "nom-complet-", idPostMembre)
                     continue
             else:
                 meta_key = re.sub(r"\d+", "", entry)
@@ -663,13 +677,19 @@ def insertDataConsistoires(connection, consistoire):
                     for name in names:
                         idPostMembre = findIdPostByType(connection, name, "dirigeants")
                         if not idPostMembre:
-                            lastRowId = createAndReturnIdMember(
+                            idPostMembre = createAndReturnIdMember(
                                 connection, name, actualTime, name
                             )
-                            arrayIdsMembers.append(lastRowId)
+                            createPostMeta(connection, role, "status", idPostMembre)
+                            
+                            arrayIdsMembers.append(idPostMembre)
                         else:
                             arrayIdsMembers.append(idPostMembre)
-                            createPostMeta(connection, role, "status", idPostMembre)
+                        
+                        if findIfSameMetaNameWithSamePostId(connection, idPostMembre, "nom-complet-") is None:
+                            createPostMeta(connection, name, "nom-complet-", idPostMembre)
+                        else:
+                            updatePostMeta(connection, name, "nom-complet-", idPostMembre)
 
             else:
                 meta_key = re.sub(r"\d+", "", entry)
