@@ -630,6 +630,14 @@ def insertDataConsistoires(connection, consistoire):
         isDirigeant = False
         arrayIdsMembers = []
 
+        if findIfSameMetaNameWithSamePostId(connection, idSyna, "titre") is None:
+                            createPostMeta(connection, consistoire['ville'].capitalize(), "titre", idSyna)
+        else:
+            updatePostMeta(connection, consistoire['ville'].capitalize(), "titre", idSyna)
+        if findIfSameMetaNameWithSamePostId(connection, idSyna, "image-principale") is None:
+                            createPostMeta(connection, '207', "image-principale", idSyna)
+        else:
+            updatePostMeta(connection, '207', "image-principale", idSyna)
         for entry in consistoire:
             if entry == "id_region":
                 meta_key = "region"
