@@ -292,7 +292,7 @@ def createPostContactSynaAndReturnId(connection, actualTime):
     return cursor.lastrowid
 
 
-def createSynaAndReturnId(connection, actualTime):
+def createSynaAndReturnId(connection, actualTime, nomConsistoire):
     queryContactSynaPost = "INSERT INTO J6e0wfWFh_posts (post_author, post_date, post_date_gmt, post_content, post_title, post_excerpt, post_name, to_ping, pinged, post_modified, post_modified_gmt, post_content_filtered, guid, post_type) VALUES (%(post_author)s, %(post_date)s, %(post_date_gmt)s, %(post_content)s, %(post_title)s, %(post_excerpt)s, %(post_name)s, %(to_ping)s, %(pinged)s, %(post_modified)s, %(post_modified_gmt)s, %(post_content_filtered)s, %(guid)s, %(post_type)s)"
     lastId = getLastIdAddOne(connection)
     postContent = {
@@ -300,11 +300,11 @@ def createSynaAndReturnId(connection, actualTime):
         "post_date": actualTime,
         "post_date_gmt": actualTime,
         "post_content": "",
-        "post_title": consistoire["nom"],
+        "post_title": nomConsistoire,
         "post_excerpt": "",
         "to_ping": "",
         "pinged": "",
-        "post_name": consistoire["nom"].lower().replace(" ", "-"),
+        "post_name": nomConsistoire.lower().replace(" ", "-"),
         "post_modified": actualTime,
         "post_modified_gmt": actualTime,
         "post_content_filtered": "",
@@ -620,9 +620,14 @@ def insertDataContact(connection, communaute, countsByVille):
 
 def insertDataConsistoires(connection, consistoire):
     actualTime = time.strftime("%Y-%m-%d %H:%M:%S")
-    idSyna = findIdConsistoireRégionalByVille(connection, consistoire["nom"])
+    nomConsistoire = consistoire["nom"]
+    if nomConsistoire == 'PARIS':
+        nomConsistoire = 'CONSISTOIRE PARIS'
+    if nomConsistoire == 'MARSEILLE':
+        nomConsistoire = 'CONSISTOIRE PARIS'
+    idSyna = findIdConsistoireRégionalByVille(connection, nomConsistoire)
     if not idSyna:
-        idSyna = createSynaAndReturnId(connection, actualTime)
+        idSyna = createSynaAndReturnId(connection, actualTime, nomConsistoire)
         createPostMeta(connection, "Consistoire régional", "consistoire", idSyna)
 
     try:
@@ -655,7 +660,7 @@ def insertDataConsistoires(connection, consistoire):
                 meta_value = consistoire[entry]
             elif entry == "nom":
                 meta_key = "nom-complet"
-                meta_value = consistoire[entry]
+                meta_value = nomConsistoire
             elif entry in ["id_consistoire", "id_ville_h", "code_postal"]:
                 continue
             elif entry == "ville":
