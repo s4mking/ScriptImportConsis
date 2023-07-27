@@ -624,7 +624,7 @@ def insertDataConsistoires(connection, consistoire):
     if nomConsistoire == 'PARIS':
         nomConsistoire = 'CONSISTOIRE PARIS'
     if nomConsistoire == 'MARSEILLE':
-        nomConsistoire = 'CONSISTOIRE PARIS'
+        nomConsistoire = 'CONSISTOIRE MARSEILLE'
     idSyna = findIdConsistoireRégionalByVille(connection, nomConsistoire)
     if not idSyna:
         idSyna = createSynaAndReturnId(connection, actualTime, nomConsistoire)
