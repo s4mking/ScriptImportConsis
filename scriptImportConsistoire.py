@@ -641,8 +641,6 @@ def insertDataConsistoires(connection, consistoire):
             updatePostMeta(connection, nomConsistoire, "titre", idSyna)
         if findIfSameMetaNameWithSamePostId(connection, idSyna, "image-principale") is None:
                             createPostMeta(connection, '207', "image-principale", idSyna)
-        else:
-            updatePostMeta(connection, '207', "image-principale", idSyna)
         for entry in consistoire:
             if entry == "id_region":
                 meta_key = "region"
