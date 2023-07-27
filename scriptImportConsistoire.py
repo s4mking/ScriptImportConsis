@@ -636,9 +636,9 @@ def insertDataConsistoires(connection, consistoire):
         arrayIdsMembers = []
 
         if findIfSameMetaNameWithSamePostId(connection, idSyna, "titre") is None:
-                            createPostMeta(connection, consistoire['ville'].capitalize(), "titre", idSyna)
+                            createPostMeta(connection, nomConsistoire, "titre", idSyna)
         else:
-            updatePostMeta(connection, consistoire['ville'].capitalize(), "titre", idSyna)
+            updatePostMeta(connection, nomConsistoire, "titre", idSyna)
         if findIfSameMetaNameWithSamePostId(connection, idSyna, "image-principale") is None:
                             createPostMeta(connection, '207', "image-principale", idSyna)
         else:
