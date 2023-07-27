@@ -393,8 +393,8 @@ def updateContactSynasForConsistoire(connection, listVilles):
         1493: "CONSISTOIRE REGIONAL DU PAYS DE LA GARONNE",
         1468: "NICE - ACIN",
         1610: "CONSISTOIRE DE BOURGOGNE FRANCHE COMTÉ - DIJON",
-        1: "PARIS",
-        1438: "MARSEILLE",
+        1: "CONSISTOIRE PARIS",
+        1438: "CONSISTOIRE MARSEILLE",
         1558: "CONSISTOIRE REGIONAL DE LA MOSELLE"
     }
     for consistoire in listVilles:
