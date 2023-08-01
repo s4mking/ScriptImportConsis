@@ -124,11 +124,11 @@ def connectDatabase():
         }
 
         connection = mysql.connector.connect(
-            host=dev["host"],
-            database=dev["database"],
-            user=dev["user"],
-            password=dev["password"],
-            port=dev["port"],
+            host=local["host"],
+            database=local["database"],
+            user=local["user"],
+            password=local["password"],
+            port=local["port"],
         )
 
         return connection
@@ -439,22 +439,19 @@ def updateContactSynasForConsistoire(connection, listVilles):
 def insertDataContact(connection, communaute, countsByVille):
     actualTime = time.strftime("%Y-%m-%d %H:%M:%S")
     multiSynas = False
-    
     # Plusieurs synagogues dans la ville
-    if (countsByVille[communaute["ville"]]) > 1:
-        idContactSyna = findcontactSynaAndReturnId(connection)
-        if not idContactSyna:
-            idContactSyna = createPostContactSynaAndReturnId(connection, actualTime)
-        multiSynas = True
+    idContactSyna = findcontactSynaAndReturnId(connection)
+    if not idContactSyna:
+        idContactSyna = createPostContactSynaAndReturnId(connection, actualTime)
+    multiSynas = True
     # 1 syna = 1 ville
-    else:        
-        # Si adresse et code postal similaire alors on ne rentre pas
-        idContactSyna = findIdPostByType(
-            connection, communaute["ville"].capitalize(), "synagogue"
-        )
-        # la ville correspondante n'est pas trouvé on sort
-        if not idContactSyna:
-            return
+    # Si adresse et code postal similaire alors on ne rentre pas
+    idSyna = findIdPostByType(
+        connection, communaute["ville"].capitalize(), "synagogue"
+    )
+    # la ville correspondante n'est pas trouvé on sort
+    if not idSyna:
+        return
     try:
         if communaute["id_consistoire"] not in communautesByConsistoire:
             communautesByConsistoire[communaute["id_consistoire"]] = []
@@ -467,7 +464,6 @@ def insertDataContact(connection, communaute, countsByVille):
 
         isDirigeant = False
         arrayIdsMembers = []
-
         for entry in communaute:
             if entry == "id_region":
                 meta_key = "region"
@@ -579,6 +575,13 @@ def insertDataContact(connection, communaute, countsByVille):
                 createPostMeta(connection, meta_value, meta_key, idContactSyna)
             else:
                 updatePostMeta(connection, meta_value, meta_key, idContactSyna)
+            if (
+                findIfSameMetaNameWithSamePostId(connection, idSyna, meta_key)
+                is None
+            ):
+                createPostMeta(connection, meta_value, meta_key, idSyna)
+            else:
+                updatePostMeta(connection, meta_value, meta_key, idSyna)
         if isDirigeant:
             result = ";".join(
                 [
@@ -786,7 +789,7 @@ def updateParisSynasTownsMulti(connection, communautesByVillesParis):
 
 connection = connectDatabase()
 
-
+ 
 urlConsistoires = "http://www.consistoire.org/getJson?f=_consistoire"
 responseConsistoires = requests.get(urlConsistoires)
 
@@ -810,7 +813,6 @@ communautesByConsistoire = {}
 communautesByVillesParis = {}
 for communaute in rowsCommunautes:
     insertDataContact(connection, communaute, countsByVille)
-
 updateConsistoireForSynas(connection)
 updateContactSynasForConsistoire(connection, communautesByConsistoire)
 updateParisSynasTownsMulti(connection, communautesByVillesParis)
