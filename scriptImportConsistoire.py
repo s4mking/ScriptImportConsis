@@ -482,7 +482,7 @@ def insertDataContact(connection, communaute, countsByVille):
             # Dans ma compréhension si on a 1 seul Syna alors c'estdescription-princiaple sinon c'est le detail non?
             elif entry == "historique":
                 # meta_key = "description-principale" if multiSynas else "detail"
-                meta_key = "description-principale"
+                meta_key = "detail"
                 meta_value = communaute[entry]
             elif entry == "adresse":
                 meta_key = "adresse-complete"
