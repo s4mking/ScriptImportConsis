@@ -52,6 +52,7 @@ def parcourirJsonCommunautes(data, connection, indentation=0, parent_key=""):
             "autre": data["autre"],
             "site": data["site"],
             "image": data["image"],
+            "detailGlobal": data["detail"]
         }
 
         obj.update(detail)
@@ -479,7 +480,7 @@ def insertDataContact(connection, communaute, countsByVille):
             elif entry == "historique":
                 # meta_key = "description-principale" if multiSynas else "detail"
                 meta_key = "detail"
-                meta_value = communaute[entry]
+                meta_value = communaute['detailGlobal'] 
             elif entry == "adresse":
                 meta_key = "adresse-complete"
                 adresseComplete = communaute[entry] + " " + communaute["code_postal"]
