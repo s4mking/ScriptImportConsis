@@ -530,10 +530,21 @@ def insertDataContact(connection, communaute, countsByVille):
                     # names = pattern.findall(text)
                     names = text.split(", ")
                     for name in names:
-                        idPostMembre = findIdPostByType(connection, name, "dirigeants")
+                         # Define a regex pattern to match email addresses
+                        email_pattern = r'\S*@\S*'
+
+                        # Define a regex pattern to match numbers
+                        number_pattern = r'\b\d+\b'
+
+                        # Combine the patterns using the OR (|) operator
+                        combined_pattern = f'{email_pattern}|{number_pattern}'
+
+                        # Use re.sub() to replace matched patterns with an empty string
+                        cleaned_name = re.sub(combined_pattern, '', name)
+                        idPostMembre = findIdPostByType(connection, cleaned_name, "dirigeants")
                         if not idPostMembre:
                             idPostMembre = createAndReturnIdMember(
-                                connection, name, actualTime, name
+                                connection, cleaned_name, actualTime, cleaned_name
                             )
                             createPostMeta(
                                 connection, communaute[entry].replace('</div', ''), "status", idPostMembre
@@ -542,15 +553,15 @@ def insertDataContact(connection, communaute, countsByVille):
                             arrayIdsMembers.append(idPostMembre)
                             
                             if findIfSameMetaNameWithSamePostId(connection, idPostMembre, "nom-complet-") is None:
-                                createPostMeta(connection, name, "nom-complet-", idPostMembre)
+                                createPostMeta(connection, cleaned_name, "nom-complet-", idPostMembre)
                             else:
-                                updatePostMeta(connection, name, "nom-complet-", idPostMembre)
+                                updatePostMeta(connection, cleaned_name, "nom-complet-", idPostMembre)
                         else:
                             arrayIdsMembers.append(idPostMembre)
                         if findIfSameMetaNameWithSamePostId(connection, idPostMembre, "nom-complet-") is None:
-                            createPostMeta(connection, name, "nom-complet-", idPostMembre)
+                            createPostMeta(connection, cleaned_name, "nom-complet-", idPostMembre)
                         else:
-                            updatePostMeta(connection, name, "nom-complet-", idPostMembre)
+                            updatePostMeta(connection, cleaned_name, "nom-complet-", idPostMembre)
                 else:
                     if len(text) > 200:
                         text = text[:200]
@@ -707,10 +718,22 @@ def insertDataConsistoires(connection, consistoire):
 
                 for role, names in roles_and_names_dict.items():
                     for name in names:
-                        idPostMembre = findIdPostByType(connection, name, "dirigeants")
+                        # Define a regex pattern to match email addresses
+                        email_pattern = r'\S*@\S*'
+
+                        # Define a regex pattern to match numbers
+                        number_pattern = r'\b\d+\b'
+
+                        # Combine the patterns using the OR (|) operator
+                        combined_pattern = f'{email_pattern}|{number_pattern}'
+
+                        # Use re.sub() to replace matched patterns with an empty string
+                        cleaned_name = re.sub(combined_pattern, '', name)
+
+                        idPostMembre = findIdPostByType(connection, cleaned_name, "dirigeants")
                         if not idPostMembre:
                             idPostMembre = createAndReturnIdMember(
-                                connection, name, actualTime, name
+                                connection, cleaned_name, actualTime, cleaned_name
                             )
                             createPostMeta(connection, role.replace('</div', ''), "status", idPostMembre)
                             
@@ -719,9 +742,9 @@ def insertDataConsistoires(connection, consistoire):
                             arrayIdsMembers.append(idPostMembre)
                         
                         if findIfSameMetaNameWithSamePostId(connection, idPostMembre, "nom-complet-") is None:
-                            createPostMeta(connection, name, "nom-complet-", idPostMembre)
+                            createPostMeta(connection, cleaned_name, "nom-complet-", idPostMembre)
                         else:
-                            updatePostMeta(connection, name, "nom-complet-", idPostMembre)
+                            updatePostMeta(connection, cleaned_name, "nom-complet-", idPostMembre)
 
             else:
                 meta_key = re.sub(r"\d+", "", entry)
