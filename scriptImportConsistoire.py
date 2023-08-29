@@ -17,10 +17,22 @@ def parcourirJsonCommunautes(data, connection, indentation=0, parent_key=""):
             new_key = parent_key + "[{}]".format(i)
             parcourirJsonCommunautes(item, connection, indentation, new_key)
     else:
-        soup = BeautifulSoup(data["detail"], "html.parser")
-        soup = soup.find_all(has_class_but_no_id)
+        soupGlobal = BeautifulSoup(data["detail"], "html.parser")
+        soup = soupGlobal.find_all(has_class_but_no_id)
         detail = {}
         tags = {}
+
+        div_start_tag = soupGlobal.find('div', style='text-align:justify;')
+        div_end_tag = soupGlobal.find('div', style='clear:both;')
+
+        if div_start_tag and div_end_tag:
+            extracted_text = ''
+            current_tag = div_start_tag.find_next()
+            while current_tag != div_end_tag:
+                if current_tag.name == 'p':
+                    extracted_text += current_tag.get_text() + ' '
+                current_tag = current_tag.find_next()
+            detail['historique'] = extracted_text.strip()
 
         for tag in soup:
             if tag.has_attr("class"):
@@ -33,6 +45,7 @@ def parcourirJsonCommunautes(data, connection, indentation=0, parent_key=""):
                 else:
                     tags[class_attr] = 0
                     detail[tag["class"][0]] = str(tag.text)
+        
 
         obj = {
             "id_communaute": data["id_communaute"],
@@ -438,6 +451,7 @@ def updateContactSynasForConsistoire(connection, listVilles):
 
 
 def insertDataContact(connection, communaute, countsByVille):
+    
     actualTime = time.strftime("%Y-%m-%d %H:%M:%S")
     multiSynas = False
     # Plusieurs synagogues dans la ville
@@ -479,8 +493,11 @@ def insertDataContact(connection, communaute, countsByVille):
             # Dans ma compréhension si on a 1 seul Syna alors c'estdescription-princiaple sinon c'est le detail non?
             elif entry == "historique":
                 # meta_key = "description-principale" if multiSynas else "detail"
-                meta_key = "detail"
-                meta_value = communaute['detailGlobal'] 
+                meta_key = "description-principale"
+                meta_value = communaute[entry]
+                #meta_value = communaute['detailGlobal'] 
+               # entry == "historiqueBetweenp"
+               # entry == "historique"
             elif entry == "adresse":
                 meta_key = "adresse-complete"
                 adresseComplete = communaute[entry] + " " + communaute["code_postal"]
