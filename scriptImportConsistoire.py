@@ -525,6 +525,17 @@ def insertDataContact(connection, communaute, countsByVille):
                 number = re.findall(r"\d+", entry)
                 number = "" if not number else int(number[0])
                 text = communaute["nom-prenom" + str(number)].lower()
+                  # Define a regex pattern to match email addresses
+                email_pattern = r'\S*@\S*'
+
+                # Define a regex pattern to match numbers
+                number_pattern = r'\b\d+\b'
+
+                # Combine the patterns using the OR (|) operator
+                combined_pattern = f'{email_pattern}|{number_pattern}'
+
+                # Use re.sub() to replace matched patterns with an empty string
+                cleanedText = re.sub(combined_pattern, '', text)
                 if "," in text:
                     # pattern = re.compile(r"\b[a-zA-ZÀ-ÿ\s\.\-]+(?=:)", re.UNICODE)
                     # names = pattern.findall(text)
@@ -563,8 +574,8 @@ def insertDataContact(connection, communaute, countsByVille):
                         else:
                             updatePostMeta(connection, cleaned_name, "nom-complet-", idPostMembre)
                 else:
-                    if len(text) > 200:
-                        text = text[:200]
+                    if len(cleanedText) > 200:
+                        text = cleanedText[:200]
                     idPostMembre = findIdPostByType(connection, text, "dirigeants")
                     if not idPostMembre:
                         idPostMembre = createAndReturnIdMember(
