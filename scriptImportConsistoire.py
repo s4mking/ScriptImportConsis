@@ -138,11 +138,11 @@ def connectDatabase():
         }
 
         connection = mysql.connector.connect(
-            host=dev["host"],
-            database=dev["database"],
-            user=dev["user"],
-            password=dev["password"],
-            port=dev["port"],
+            host=local["host"],
+            database=local["database"],
+            user=local["user"],
+            password=local["password"],
+            port=local["port"],
         )
 
         return connection
@@ -451,7 +451,6 @@ def updateContactSynasForConsistoire(connection, listVilles):
 
 
 def insertDataContact(connection, communaute, countsByVille):
-    
     actualTime = time.strftime("%Y-%m-%d %H:%M:%S")
     multiSynas = False
     # Plusieurs synagogues dans la ville
@@ -496,8 +495,8 @@ def insertDataContact(connection, communaute, countsByVille):
                 meta_key = "description-principale"
                 meta_value = communaute[entry]
                 #meta_value = communaute['detailGlobal'] 
-               # entry == "historiqueBetweenp"
-               # entry == "historique"
+            # entry == "historiqueBetweenp"
+            # entry == "historique"
             elif entry == "adresse":
                 meta_key = "adresse-complete"
                 adresseComplete = communaute[entry] + " " + communaute["code_postal"]
@@ -525,7 +524,7 @@ def insertDataContact(connection, communaute, countsByVille):
                 number = re.findall(r"\d+", entry)
                 number = "" if not number else int(number[0])
                 text = communaute["nom-prenom" + str(number)].lower()
-                  # Define a regex pattern to match email addresses
+                # Define a regex pattern to match email addresses
                 email_pattern = r'\S*@\S*'
 
                 # Define a regex pattern to match numbers
@@ -541,7 +540,7 @@ def insertDataContact(connection, communaute, countsByVille):
                     # names = pattern.findall(text)
                     names = text.split(", ")
                     for name in names:
-                         # Define a regex pattern to match email addresses
+                        # Define a regex pattern to match email addresses
                         email_pattern = r'\S*@\S*'
 
                         # Define a regex pattern to match numbers
@@ -635,7 +634,6 @@ def insertDataContact(connection, communaute, countsByVille):
                 "meta_value": f"a:{len(arrayIdsMembers)}:{{{result}}}",
             }
             # if not communaute['adresse']:
-
             # idSyna = findIdSynaByCpAndAdress(connection, communaute)
             # if idSyna:
             if (
@@ -656,6 +654,25 @@ def insertDataContact(connection, communaute, countsByVille):
                     metaDirigeants["meta_value"],
                     metaDirigeants["meta_key"],
                     idContactSyna,
+                )
+            if (
+            findIfSameMetaNameWithSamePostId(
+                connection, idSyna, metaDirigeants["meta_key"]
+            )
+            is None
+        ):
+                createPostMeta(
+                    connection,
+                    metaDirigeants["meta_value"],
+                    metaDirigeants["meta_key"],
+                    idSyna,
+                )
+            else:
+                updatePostMeta(
+                    connection,
+                    metaDirigeants["meta_value"],
+                    metaDirigeants["meta_key"],
+                    idSyna,
                 )
     except Exception as e:
         print(f"Error inserting data: {str(e)}")
@@ -747,7 +764,6 @@ def insertDataConsistoires(connection, consistoire):
                                 connection, cleaned_name, actualTime, cleaned_name
                             )
                             createPostMeta(connection, role.replace('</div', ''), "status", idPostMembre)
-                            
                             arrayIdsMembers.append(idPostMembre)
                         else:
                             arrayIdsMembers.append(idPostMembre)
