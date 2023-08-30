@@ -665,6 +665,26 @@ def insertDataContact(connection, communaute, countsByVille):
                     metaDirigeants["meta_key"],
                     idContactSyna,
                 )
+
+            if (
+                findIfSameMetaNameWithSamePostId(
+                    connection, idSyna, metaDirigeants["meta_key"]
+                )
+                is None
+            ):
+                createPostMeta(
+                    connection,
+                    metaDirigeants["meta_value"],
+                    metaDirigeants["meta_key"],
+                    idSyna,
+                )
+            else:
+                updatePostMeta(
+                    connection,
+                    metaDirigeants["meta_value"],
+                    metaDirigeants["meta_key"],
+                    idSyna,
+                )
     except Exception as e:
         print(f"Error inserting data: {str(e)}")
 
