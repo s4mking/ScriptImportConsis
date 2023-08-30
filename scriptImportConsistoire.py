@@ -276,6 +276,8 @@ def findcontactSynaAndReturnId(connection):
             "contact-des-synagogu",
         ),
     )
+    print(communaute["adresse"])
+    print(communaute["code_postal"])
     result = cursor.fetchone()
     return result[0] if result is not None else None
 
@@ -451,231 +453,222 @@ def updateContactSynasForConsistoire(connection, listVilles):
 
 
 def insertDataContact(connection, communaute, countsByVille):
-    actualTime = time.strftime("%Y-%m-%d %H:%M:%S")
-    multiSynas = False
-    # Plusieurs synagogues dans la ville
-    idContactSyna = findcontactSynaAndReturnId(connection)
-    if not idContactSyna:
-        idContactSyna = createPostContactSynaAndReturnId(connection, actualTime)
-    multiSynas = True
-    # 1 syna = 1 ville
-    # Si adresse et code postal similaire alors on ne rentre pas
-    idSyna = findIdPostByType(
-        connection, communaute["ville"].capitalize(), "synagogue"
-    )
-    # la ville correspondante n'est pas trouvé on sort
-    if not idSyna:
-        return
-    try:
-        if communaute["id_consistoire"] not in communautesByConsistoire:
-            communautesByConsistoire[communaute["id_consistoire"]] = []
-        communautesByConsistoire[communaute["id_consistoire"]].append(idContactSyna)
+    if communaute["ville"] == 'CLICHY':
+        actualTime = time.strftime("%Y-%m-%d %H:%M:%S")
+        multiSynas = False
+        # Plusieurs synagogues dans la ville
+        idContactSyna = findcontactSynaAndReturnId(connection)
+        if not idContactSyna:
+            idContactSyna = createPostContactSynaAndReturnId(connection, actualTime)
+        multiSynas = True
+        # 1 syna = 1 ville
+        # Si adresse et code postal similaire alors on ne rentre pas
+        idSyna = findIdPostByType(
+            connection, communaute["ville"].capitalize(), "synagogue"
+        )
+        # la ville correspondante n'est pas trouvé on sort
+        if not idSyna:
+            return
+        try:
+            if communaute["id_consistoire"] not in communautesByConsistoire:
+                communautesByConsistoire[communaute["id_consistoire"]] = []
+            communautesByConsistoire[communaute["id_consistoire"]].append(idContactSyna)
 
-        if (countsByVille[communaute["ville"]]) > 1 and int(communaute["id_ville_h"]) == 13:
-            if communaute["ville"] not in communautesByVillesParis:
-                communautesByVillesParis[communaute["ville"]] = []
-            communautesByVillesParis[communaute["ville"]].append(idContactSyna)
+            if (countsByVille[communaute["ville"]]) > 1 and int(communaute["id_ville_h"]) == 13:
+                if communaute["ville"] not in communautesByVillesParis:
+                    communautesByVillesParis[communaute["ville"]] = []
+                communautesByVillesParis[communaute["ville"]].append(idContactSyna)
 
-        isDirigeant = False
-        arrayIdsMembers = []
-        for entry in communaute:
-            if entry == "id_region":
-                meta_key = "region"
-                meta_value = findIdRegion(int(communaute[entry]))
-            elif entry == "id_communaute":
-                titleCommunaute = findPostById(connection, communaute[entry])
-                if titleCommunaute:
+            isDirigeant = False
+            arrayIdsMembers = []
+            for entry in communaute:
+                if entry == "id_region":
+                    meta_key = "region"
+                    meta_value = findIdRegion(int(communaute[entry]))
+                elif entry == "id_communaute":
+                    titleCommunaute = findPostById(connection, communaute[entry])
+                    if titleCommunaute:
+                        meta_key = "nom-complet"
+                        meta_value = titleCommunaute[0]
+                    else:
+                        continue
+                # Dans ma compréhension si on a 1 seul Syna alors c'estdescription-princiaple sinon c'est le detail non?
+                elif entry == "historique":
+                    # meta_key = "description-principale" if multiSynas else "detail"
+                    meta_key = "description-principale"
+                    meta_value = communaute[entry]
+                    #meta_value = communaute['detailGlobal'] 
+                # entry == "historiqueBetweenp"
+                # entry == "historique"
+                elif entry == "adresse":
+                    meta_key = "adresse-complete"
+                    adresseComplete = communaute[entry] + " " + communaute["code_postal"]
+                    meta_value = adresseComplete
+                elif entry == "tel":
+                    meta_key = "numero-de-telephone"
+                    meta_value = communaute[entry]
+                elif entry == "nom":
                     meta_key = "nom-complet"
-                    meta_value = titleCommunaute[0]
-                else:
+                    meta_value = communaute[entry] if communaute[entry] else 'synagogue'
+                elif entry in ["id_consistoire", "id_ville_h", "code_postal"]:
                     continue
-            # Dans ma compréhension si on a 1 seul Syna alors c'estdescription-princiaple sinon c'est le detail non?
-            elif entry == "historique":
-                # meta_key = "description-principale" if multiSynas else "detail"
-                meta_key = "description-principale"
-                meta_value = communaute[entry]
-                #meta_value = communaute['detailGlobal'] 
-            # entry == "historiqueBetweenp"
-            # entry == "historique"
-            elif entry == "adresse":
-                meta_key = "adresse-complete"
-                adresseComplete = communaute[entry] + " " + communaute["code_postal"]
-                meta_value = adresseComplete
-            elif entry == "tel":
-                meta_key = "numero-de-telephone"
-                meta_value = communaute[entry]
-            elif entry == "nom":
-                meta_key = "nom-complet"
-                meta_value = communaute[entry] if communaute[entry] else 'synagogue'
-            elif entry in ["id_consistoire", "id_ville_h", "code_postal"]:
-                continue
-            elif "nom-prenom" in entry:
-                continue
-                meta_key = "nom-complet-"
-                meta_value = communaute[entry]
-            elif entry == "ville":
-                meta_key = "ville"
-                if int(communaute["id_ville_h"]) == 13:
-                    meta_value = "Paris"
-                else:
-                    meta_value = communaute[entry].capitalize()
-            elif "fonction" in entry:
-                isDirigeant = True
-                number = re.findall(r"\d+", entry)
-                number = "" if not number else int(number[0])
-                text = communaute["nom-prenom" + str(number)].lower()
-                # Define a regex pattern to match email addresses
-                email_pattern = r'\S*@\S*'
-
-                # Define a regex pattern to match numbers
-                number_pattern = r'\b\d+\b'
-
-                # Combine the patterns using the OR (|) operator
-                combined_pattern = f'{email_pattern}|{number_pattern}'
-
-                # Use re.sub() to replace matched patterns with an empty string
-                cleanedText = re.sub(combined_pattern, '', text)
-                if "," in text:
-                    # pattern = re.compile(r"\b[a-zA-ZÀ-ÿ\s\.\-]+(?=:)", re.UNICODE)
-                    # names = pattern.findall(text)
-                    names = text.split(", ")
-                    for name in names:
+                elif "nom-prenom" in entry:
+                    continue
+                    meta_key = "nom-complet-"
+                    meta_value = communaute[entry]
+                elif entry == "ville":
+                    meta_key = "ville"
+                    if int(communaute["id_ville_h"]) == 13:
+                        meta_value = "Paris"
+                    else:
+                        meta_value = communaute[entry].capitalize()
+                elif "fonction" in entry:
+                    if entry == 'fonction3':
+                        isDirigeant = True
+                        number = re.findall(r"\d+", entry)
+                        number = "" if not number else int(number[0])
+                        text = communaute["nom-prenom" + str(number)].lower()
                         # Define a regex pattern to match email addresses
                         email_pattern = r'\S*@\S*'
 
                         # Define a regex pattern to match numbers
                         number_pattern = r'\b\d+\b'
 
+                        # Define a regex pattern to match colons
+                        colon_pattern = r':'
+
                         # Combine the patterns using the OR (|) operator
-                        combined_pattern = f'{email_pattern}|{number_pattern}'
+                        combined_pattern = f'{email_pattern}|{number_pattern}|{colon_pattern}'
 
                         # Use re.sub() to replace matched patterns with an empty string
-                        cleaned_name = re.sub(combined_pattern, '', name)
-                        idPostMembre = findIdPostByType(connection, cleaned_name, "dirigeants")
-                        if not idPostMembre:
-                            idPostMembre = createAndReturnIdMember(
-                                connection, cleaned_name, actualTime, cleaned_name
-                            )
-                            createPostMeta(
-                                connection, communaute[entry].replace('</div', ''), "status", idPostMembre
-                            )
-                            
-                            arrayIdsMembers.append(idPostMembre)
-                            
-                            if findIfSameMetaNameWithSamePostId(connection, idPostMembre, "nom-complet-") is None:
-                                createPostMeta(connection, cleaned_name, "nom-complet-", idPostMembre)
-                            else:
-                                updatePostMeta(connection, cleaned_name, "nom-complet-", idPostMembre)
-                        else:
-                            arrayIdsMembers.append(idPostMembre)
-                        if findIfSameMetaNameWithSamePostId(connection, idPostMembre, "nom-complet-") is None:
-                            createPostMeta(connection, cleaned_name, "nom-complet-", idPostMembre)
-                        else:
-                            updatePostMeta(connection, cleaned_name, "nom-complet-", idPostMembre)
-                else:
-                    if len(cleanedText) > 200:
-                        text = cleanedText[:200]
-                    idPostMembre = findIdPostByType(connection, text, "dirigeants")
-                    if not idPostMembre:
-                        idPostMembre = createAndReturnIdMember(
-                            connection, text, actualTime, text
-                        )
-                        arrayIdsMembers.append(idPostMembre)
-                    #     # idPostMembre = findIdPostByType(connection, communaute['nom-prenom'+str(number)])
-                    else:
-                        arrayIdsMembers.append(idPostMembre)
+                        cleanedText = re.sub(combined_pattern, '', text)
+                        if "," in text:
+                            # pattern = re.compile(r"\b[a-zA-ZÀ-ÿ\s\.\-]+(?=:)", re.UNICODE)
+                            # names = pattern.findall(text)
+                            names = text.split(", ")
+                            for name in names:
+                                # Define a regex pattern to match email addresses
+                                email_pattern = r'\S*@\S*'
 
-                    # createPostMeta(connection, communaute[entry], "status", idPostMembre)
-                    idMeta = findIfSameMetaNameWithSamePostId(
-                            connection, idPostMembre, meta_key
-                        )
-                    if (
-                        idMeta is None
-                    ):
-                        createPostMeta(
-                            connection, communaute[entry].replace('</div', ''), "status", idPostMembre
-                        )
-                    else:
-                        updatePostMeta(
-                            connection, communaute[entry].replace('</div', ''), "status", idMeta
-                        )
-                    if findIfSameMetaNameWithSamePostId(connection, idPostMembre, "nom-complet-") is None:
-                            createPostMeta(connection, text, "nom-complet-", idPostMembre)
-                    else:
-                        updatePostMeta(connection, text, "nom-complet-", idPostMembre)
-                    continue
-            else:
-                meta_key = re.sub(r"\d+", "", entry)
-                meta_value = transformValue(communaute[entry])
-            if (
-                findIfSameMetaNameWithSamePostId(connection, idContactSyna, meta_key)
-                is None
-            ):
-                createPostMeta(connection, meta_value, meta_key, idContactSyna)
-            else:
-                updatePostMeta(connection, meta_value, meta_key, idContactSyna)
-            if (
-                findIfSameMetaNameWithSamePostId(connection, idSyna, meta_key)
-                is None
-            ):
-                createPostMeta(connection, meta_value, meta_key, idSyna)
-            else:
-                updatePostMeta(connection, meta_value, meta_key, idSyna)
-        if isDirigeant:
-            result = ";".join(
-                [
-                    f'i:{i};s:{len(str(value))}:"{value}"'
-                    for i, value in enumerate(arrayIdsMembers)
-                ]
-            )
-            result += ";"
-            metaDirigeants = {
-                "meta_key": "dirigeants",
-                "meta_value": f"a:{len(arrayIdsMembers)}:{{{result}}}",
-            }
-            # if not communaute['adresse']:
-            # idSyna = findIdSynaByCpAndAdress(connection, communaute)
-            # if idSyna:
-            if (
-                findIfSameMetaNameWithSamePostId(
-                    connection, idContactSyna, metaDirigeants["meta_key"]
+                                # Define a regex pattern to match numbers
+                                number_pattern = r'\b\d+\b'
+
+                                # Define a regex pattern to match colons
+                                colon_pattern = r':'
+
+                            # Combine the patterns using the OR (|) operator
+                                combined_pattern = f'{email_pattern}|{number_pattern}|{colon_pattern}'
+
+                                # Use re.sub() to replace matched patterns with an empty string
+                                cleaned_name = re.sub(combined_pattern, '', name)
+                                idPostMembre = findIdPostByType(connection, cleaned_name, "dirigeants")
+                                if not idPostMembre:
+                                    idPostMembre = createAndReturnIdMember(
+                                        connection, cleaned_name, actualTime, cleaned_name
+                                    )
+                                    createPostMeta(
+                                        connection, communaute[entry].replace('</div', ''), "status", idPostMembre
+                                    )
+                                    
+                                    arrayIdsMembers.append(idPostMembre)
+                                    
+                                    if findIfSameMetaNameWithSamePostId(connection, idPostMembre, "nom-complet-") is None:
+                                        createPostMeta(connection, cleaned_name, "nom-complet-", idPostMembre)
+                                    else:
+                                        updatePostMeta(connection, cleaned_name, "nom-complet-", idPostMembre)
+                                else:
+                                    arrayIdsMembers.append(idPostMembre)
+                                if findIfSameMetaNameWithSamePostId(connection, idPostMembre, "nom-complet-") is None:
+                                    createPostMeta(connection, cleaned_name, "nom-complet-", idPostMembre)
+                                else:
+                                    print('here')
+                                    print(cleaned_name)
+                                    updatePostMeta(connection, cleaned_name, "nom-complet-", idPostMembre)
+                        else:
+                            if len(cleanedText) > 200:
+                                cleanedText = cleanedText[:200]
+                            idPostMembre = findIdPostByType(connection, cleanedText, "dirigeants")
+                            if not idPostMembre:
+                                idPostMembre = createAndReturnIdMember(
+                                    connection, text, actualTime, cleanedText
+                                )
+                                arrayIdsMembers.append(idPostMembre)
+                            #     # idPostMembre = findIdPostByType(connection, communaute['nom-prenom'+str(number)])
+                            else:
+                                arrayIdsMembers.append(idPostMembre)
+
+                            # createPostMeta(connection, communaute[entry], "status", idPostMembre)
+                            idMeta = findIfSameMetaNameWithSamePostId(
+                                    connection, idPostMembre, meta_key
+                                )
+                            if (
+                                idMeta is None
+                            ):
+                                createPostMeta(
+                                    connection, communaute[entry].replace('</div', ''), "status", idPostMembre
+                                )
+                            else:
+                                updatePostMeta(
+                                    connection, communaute[entry].replace('</div', ''), "status", idMeta
+                                )
+                            if findIfSameMetaNameWithSamePostId(connection, idPostMembre, "nom-complet-") is None:
+                                    createPostMeta(connection, cleanedText, "nom-complet-", idPostMembre)
+                            else:
+                                updatePostMeta(connection, cleanedText, "nom-complet-", idPostMembre)
+                            continue
+                else:
+                    meta_key = re.sub(r"\d+", "", entry)
+                    meta_value = transformValue(communaute[entry])
+                if (
+                    findIfSameMetaNameWithSamePostId(connection, idContactSyna, meta_key)
+                    is None
+                ):
+                    createPostMeta(connection, meta_value, meta_key, idContactSyna)
+                else:
+                    updatePostMeta(connection, meta_value, meta_key, idContactSyna)
+                if (
+                    findIfSameMetaNameWithSamePostId(connection, idSyna, meta_key)
+                    is None
+                ):
+                    createPostMeta(connection, meta_value, meta_key, idSyna)
+                else:
+                    updatePostMeta(connection, meta_value, meta_key, idSyna)
+            if isDirigeant:
+                result = ";".join(
+                    [
+                        f'i:{i};s:{len(str(value))}:"{value}"'
+                        for i, value in enumerate(arrayIdsMembers)
+                    ]
                 )
-                is None
-            ):
-                createPostMeta(
-                    connection,
-                    metaDirigeants["meta_value"],
-                    metaDirigeants["meta_key"],
-                    idContactSyna,
-                )
-            else:
-                updatePostMeta(
-                    connection,
-                    metaDirigeants["meta_value"],
-                    metaDirigeants["meta_key"],
-                    idContactSyna,
-                )
-            if (
-            findIfSameMetaNameWithSamePostId(
-                connection, idSyna, metaDirigeants["meta_key"]
-            )
-            is None
-        ):
-                createPostMeta(
-                    connection,
-                    metaDirigeants["meta_value"],
-                    metaDirigeants["meta_key"],
-                    idSyna,
-                )
-            else:
-                updatePostMeta(
-                    connection,
-                    metaDirigeants["meta_value"],
-                    metaDirigeants["meta_key"],
-                    idSyna,
-                )
-    except Exception as e:
-        print(f"Error inserting data: {str(e)}")
+                result += ";"
+                metaDirigeants = {
+                    "meta_key": "dirigeants",
+                    "meta_value": f"a:{len(arrayIdsMembers)}:{{{result}}}",
+                }
+                # if not communaute['adresse']:
+                # idSyna = findIdSynaByCpAndAdress(connection, communaute)
+                # if idSyna:
+                if (
+                    findIfSameMetaNameWithSamePostId(
+                        connection, idContactSyna, metaDirigeants["meta_key"]
+                    )
+                    is None
+                ):
+                    createPostMeta(
+                        connection,
+                        metaDirigeants["meta_value"],
+                        metaDirigeants["meta_key"],
+                        idContactSyna,
+                    )
+                else:
+                    updatePostMeta(
+                        connection,
+                        metaDirigeants["meta_value"],
+                        metaDirigeants["meta_key"],
+                        idContactSyna,
+                    )
+        except Exception as e:
+            print(f"Error inserting data: {str(e)}")
 
 
 def insertDataConsistoires(connection, consistoire):
@@ -764,6 +757,7 @@ def insertDataConsistoires(connection, consistoire):
                                 connection, cleaned_name, actualTime, cleaned_name
                             )
                             createPostMeta(connection, role.replace('</div', ''), "status", idPostMembre)
+                            print(idPostMembre)
                             arrayIdsMembers.append(idPostMembre)
                         else:
                             arrayIdsMembers.append(idPostMembre)
@@ -811,6 +805,8 @@ def insertDataConsistoires(connection, consistoire):
                     metaDirigeants["meta_key"],
                     idSyna,
                 )
+                print(idSyna)
+                print(metaDirigeants["meta_value"])
     except Exception as e:
         print(f"Error inserting data: {str(e)}")
 
