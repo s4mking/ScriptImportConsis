@@ -335,24 +335,24 @@ def createSynaAndReturnId(connection, actualTime, nomConsistoire):
 
 def findIdRegion(id):
     regions = [
-        "Région parisienne",
-        "Alpes provence",
-        "Bourgogne franche-comté",
-        "Bretagne - pays de loire",
-        "Centre ouest",
-        "Champagne ardennes",
-        "Côte d'azur",
-        "Languedoc",
-        "Lorraine",
-        "Nord",
-        "Normandie",
-        "Pays de la garonne",
-        "Rhône-alpes - centre",
-        "Sud ouest",
-        "Dom tom",
-        "Bas-rhin",
-        "Haut-rhin",
-        "Moselle",
+        "region-parisienne",
+        "alpes-provence",
+        "bourgogne-franche-comte",
+        "bretagne---pays-de-loire",
+        "centre-ouest",
+        "champagne-ardennes",
+        "cote-dazur",
+        "languedoc",
+        "lorraine",
+        "nord",
+        "normandie",
+        "pays-de-la-garonne",
+        "rhone-alpes-centre",
+        "sud-ouest",
+        "dom-tom",
+        "bas-rhin-",
+        "haut-rhin-",
+        "moselle",
         "Autre",
     ]
     return regions[id - 1]
@@ -483,7 +483,7 @@ def insertDataContact(connection, communaute, countsByVille):
         arrayIdsMembers = []
         for entry in communaute:
             if entry == "id_region":
-                meta_key = "region"
+                meta_key = "regions"
                 meta_value = findIdRegion(int(communaute[entry]))
             elif entry == "id_communaute":
                 titleCommunaute = findPostById(connection, communaute[entry])
